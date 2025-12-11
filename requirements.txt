@@ -16,6 +16,7 @@ openrouteservice>=2.3.0
 osmnx>=2.0.0
 networkx>=3.0
 geopandas>=1.0.0
+scikit-learn>=1.0.0
 
 # Data processing
 pandas>=2.0.0

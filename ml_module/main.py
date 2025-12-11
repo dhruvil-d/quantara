@@ -344,9 +344,9 @@ def main():
     """
     Example usage of the Supply Chain Rerouting System
     """
-    # Example: Delhi to Gurgaon
-    origin = (28.644800, 77.216721)  # Delhi
-    destination = (28.459496, 77.029806)  # Gurgaon
+    # Example: Jaipur to Delhi
+    origin = (26.9124, 75.7873)  # Jaipur
+    destination = (28.6139, 77.2090)  # Delhi
     
     user_priorities = {
         "time": 0.4,
@@ -363,8 +363,8 @@ def main():
         origin=origin,
         destination=destination,
         user_priorities=user_priorities,
-        origin_name="Delhi",
-        destination_name="Gurgaon"
+        origin_name="Jaipur",
+        destination_name="Delhi"
     )
     
     # Print results
