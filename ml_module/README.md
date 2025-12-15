@@ -67,17 +67,26 @@ Some features work with fallbacks if optional packages aren't installed:
 
 ## Usage
 
+### Important: Coordinate-Agnostic Design
+
+**The ML module does NOT perform geocoding.** It is a pure analysis engine that operates only on provided latitude/longitude coordinates.
+
+- ❌ **DO NOT**: Pass city names or addresses to the ML module
+- ✅ **DO**: Geocode locations in your backend/API layer, then pass coordinates to the ML module
+- ✅ **DO**: Use the `run_analysis()` function with explicit lat/lng parameters
+
 ### Basic Usage
 
 ```python
-from ml_module.main import SupplyChainReroutingSystem
+from ml_module.run_analysis import run_analysis
 
-# Initialize system
-system = SupplyChainReroutingSystem()
+# Coordinates must be provided by backend after geocoding user-selected locations
+# The ML module does NOT perform geocoding - it only accepts coordinates
 
-# Define origin and destination (latitude, longitude)
-origin = (28.644800, 77.216721)  # Delhi
-destination = (28.459496, 77.029806)  # Gurgaon
+origin_lat = 28.644800   # Provided by backend after geocoding
+origin_lng = 77.216721   # Provided by backend after geocoding
+dest_lat = 28.459496     # Provided by backend after geocoding
+dest_lng = 77.029806     # Provided by backend after geocoding
 
 # Define user priorities (weights should sum to ~1.0)
 user_priorities = {
@@ -87,14 +96,15 @@ user_priorities = {
     "carbon_emission": 0.1
 }
 
-# Analyze routes
-result = system.analyze_routes(
-    origin=origin,
-    destination=destination,
-    user_priorities=user_priorities,
-    origin_name="Delhi",
-    destination_name="Gurgaon",
-    max_alternatives=3
+# Analyze routes (coordinates only - no geocoding)
+result = run_analysis(
+    origin_lat=origin_lat,
+    origin_lng=origin_lng,
+    dest_lat=dest_lat,
+    dest_lng=dest_lng,
+    origin_name="Delhi",  # Optional: for display/logging only
+    dest_name="Gurgaon",  # Optional: for display/logging only
+    priorities=user_priorities
 )
 
 # Access results

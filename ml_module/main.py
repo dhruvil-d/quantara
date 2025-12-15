@@ -122,8 +122,23 @@ class SupplyChainReroutingSystem:
             
             # Step 3: Score routes using Gemini
             logger.info("Scoring routes with Gemini AI")
+            # Prepare optimized data for Gemini (only essential fields)
+            routes_for_gemini = []
+            for route in enriched_routes:
+                routes_for_gemini.append({
+                    "route_name": route.get("route_name", "Unknown"),
+                    "distance_m": route.get("distance_m", 0),
+                    "predicted_duration_min": route.get("predicted_duration_min", 0),
+                    "weather": route.get("weather", {}),
+                    "social_risk": route.get("social_risk", 50.0),
+                    "political_risk": route.get("political_risk", 50.0),
+                    "traffic_status": route.get("traffic_status", "moderate"),
+                    "road_condition": route.get("road_condition", "moderate"),
+                    "rest_stops_nearby": route.get("rest_stops_nearby", False)
+                })
+            
             resilience_scores = self.gemini_scorer.score_routes(
-                enriched_routes,
+                routes_for_gemini,
                 user_priorities
             )
             
@@ -343,10 +358,34 @@ class SupplyChainReroutingSystem:
 def main():
     """
     Example usage of the Supply Chain Rerouting System
+    
+    NOTE: This is a demonstration function. In production, coordinates
+    should be provided by the backend API after geocoding user-selected locations.
+    The ML module does NOT perform geocoding - it only accepts coordinates.
     """
-    # Example: Jaipur to Delhi
-    origin = (26.9124, 75.7873)  # Jaipur
-    destination = (28.6139, 77.2090)  # Delhi
+    import sys
+    
+    # Check if coordinates are provided as command-line arguments
+    if len(sys.argv) >= 5:
+        try:
+            origin_lat = float(sys.argv[1])
+            origin_lng = float(sys.argv[2])
+            dest_lat = float(sys.argv[3])
+            dest_lng = float(sys.argv[4])
+            origin_name = sys.argv[5] if len(sys.argv) > 5 else "Origin"
+            dest_name = sys.argv[6] if len(sys.argv) > 6 else "Destination"
+        except ValueError:
+            print("Error: Invalid coordinate format. Use: python main.py <origin_lat> <origin_lng> <dest_lat> <dest_lng> [origin_name] [dest_name]")
+            return
+    else:
+        print("Usage: python main.py <origin_lat> <origin_lng> <dest_lat> <dest_lng> [origin_name] [dest_name]")
+        print("Example: python main.py 26.9124 75.7873 28.6139 77.2090 Jaipur Delhi")
+        print("\nNote: The ML module does NOT perform geocoding.")
+        print("Coordinates must be provided by the backend after geocoding user-selected locations.")
+        return
+    
+    origin = (origin_lat, origin_lng)
+    destination = (dest_lat, dest_lng)
     
     user_priorities = {
         "time": 0.4,
@@ -363,8 +402,8 @@ def main():
         origin=origin,
         destination=destination,
         user_priorities=user_priorities,
-        origin_name="Jaipur",
-        destination_name="Delhi"
+        origin_name=origin_name,
+        destination_name=dest_name
     )
     
     # Print results
