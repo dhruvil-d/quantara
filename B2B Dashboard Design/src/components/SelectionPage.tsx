@@ -7,6 +7,8 @@ interface SelectionPageProps {
     onContinue: (source: string, destination: string) => void;
     isDarkMode: boolean;
     toggleTheme: () => void;
+    osmnxEnabled: boolean;
+    onToggleOsmnx: (value: boolean) => void;
 }
 
 const CITIES = [
@@ -17,7 +19,7 @@ const CITIES = [
     "Kolkata",
 ];
 
-export function SelectionPage({ onContinue, isDarkMode, toggleTheme }: SelectionPageProps) {
+export function SelectionPage({ onContinue, isDarkMode, toggleTheme, osmnxEnabled, onToggleOsmnx }: SelectionPageProps) {
     const [source, setSource] = useState<string>("");
     const [destination, setDestination] = useState<string>("");
 
@@ -105,6 +107,24 @@ export function SelectionPage({ onContinue, isDarkMode, toggleTheme }: Selection
                                 <option key={city} value={city}>{city}</option>
                             ))}
                         </select>
+                    </div>
+
+                    {/* OSMnx Option */}
+                    <div className="flex items-center justify-between text-xs">
+                        <label
+                            className="flex items-center gap-2 cursor-pointer"
+                            title="Enabling this option will increase accuracy but also increase the processing time"
+                        >
+                            <input
+                                type="checkbox"
+                                className="rounded border-gray-400"
+                                checked={osmnxEnabled}
+                                onChange={(e) => onToggleOsmnx(e.target.checked)}
+                            />
+                            <span className={isDarkMode ? "text-gray-300" : "text-gray-700"}>
+                                Use detailed road data (OSMnx)
+                            </span>
+                        </label>
                     </div>
 
                     {/* Action Button */}

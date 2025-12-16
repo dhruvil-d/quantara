@@ -76,8 +76,23 @@ export function MapView({ route, isDarkMode = false }: MapViewProps) {
         return [lat, lon]; // convert to Leaflet order
       }
       return null;
-    } catch (err) {
+    } catch (err: any) {
       console.error(`Geocoding error for ${city}:`, err);
+      
+      // Handle axios errors with status codes
+      if (err.response) {
+        const status = err.response.status;
+        const errorMessage = err.response.data?.error || err.response.statusText || "Unknown error";
+        
+        if (status === 500) {
+          console.error(`Server error while geocoding ${city}: ${errorMessage}`);
+        } else if (status === 400) {
+          console.error(`Invalid request for ${city}: ${errorMessage}`);
+        }
+      } else if (err.request) {
+        console.error(`Network error while geocoding ${city}: Could not reach backend server`);
+      }
+      
       return null;
     }
   };
@@ -86,28 +101,50 @@ export function MapView({ route, isDarkMode = false }: MapViewProps) {
   // 2) Fetch GraphHopper Route
   // ------------------------------
   const fetchRoute = async (coordinates: [number, number][]) => {
-    const coordsString = coordinates
-      .map((coord) => `${coord[1]},${coord[0]}`) // Leaflet [lat,lon] → GH [lon,lat]
-      .join(";");
+    try {
+      const coordsString = coordinates
+        .map((coord) => `${coord[1]},${coord[0]}`) // Leaflet [lat,lon] → GH [lon,lat]
+        .join(";");
 
-    const response = await axios.get("http://localhost:5000/route", {
-      params: { coordinates: coordsString },
-    });
+      const response = await axios.get("http://localhost:5000/route", {
+        params: { coordinates: coordsString },
+      });
 
-    if (!response.data.paths || response.data.paths.length === 0) {
-      throw new Error("No route found (GraphHopper)");
+      if (!response.data.paths || response.data.paths.length === 0) {
+        throw new Error("No route found (GraphHopper)");
+      }
+
+      const encoded = response.data.paths[0].points;
+
+      // Decode Google polyline → returns [lat, lon]
+      const decoded = polyline.decode(encoded);
+
+      // Convert to Leaflet format
+      return decoded.map((points: [number, number]) => {
+        const [lat, lon] = points;
+        return [lat, lon] as [number, number];
+      });
+    } catch (err: any) {
+      console.error("Route fetching error:", err);
+      
+      // Handle axios errors with status codes
+      if (err.response) {
+        const status = err.response.status;
+        const errorMessage = err.response.data?.error || err.response.statusText || "Unknown error";
+        
+        if (status === 500) {
+          throw new Error(`Server error: ${errorMessage}. Please check if the backend server is running and GraphHopper API key is configured.`);
+        } else if (status === 400) {
+          throw new Error(`Invalid request: ${errorMessage}`);
+        } else {
+          throw new Error(`Request failed (${status}): ${errorMessage}`);
+        }
+      } else if (err.request) {
+        throw new Error("Network error: Could not reach the backend server. Please ensure the server is running on http://localhost:5000");
+      } else {
+        throw new Error(err.message || "Failed to fetch route");
+      }
     }
-
-    const encoded = response.data.paths[0].points;
-
-    // Decode Google polyline → returns [lat, lon]
-    const decoded = polyline.decode(encoded);
-
-    // Convert to Leaflet format
-    return decoded.map((points: [number, number]) => {
-      const [lat, lon] = points;
-      return [lat, lon] as [number, number];
-    });
   };
 
   // ------------------------------

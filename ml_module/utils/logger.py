@@ -10,7 +10,7 @@ from typing import Optional
 
 def setup_logger(
     name: str = "ml_module",
-    log_level: str = "INFO",
+    log_level: str = "DEBUG",
     log_file: Optional[str] = None
 ) -> logging.Logger:
     """
@@ -42,11 +42,11 @@ def setup_logger(
     
     # Create formatters
     detailed_formatter = logging.Formatter(
-        '%(asctime)s - %(name)s - %(levelname)s - %(funcName)s:%(lineno)d - %(message)s',
+        '[%(asctime)s] [%(name)s] [%(levelname)s] [%(funcName)s:%(lineno)d] %(message)s',
         datefmt='%Y-%m-%d %H:%M:%S'
     )
     console_formatter = logging.Formatter(
-        '%(levelname)s - %(message)s'
+        '[%(levelname)s] %(message)s'
     )
     
     # File handler

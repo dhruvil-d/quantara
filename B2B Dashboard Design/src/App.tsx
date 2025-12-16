@@ -157,6 +157,7 @@ export default function App() {
   const [destCity, setDestCity] = useState<string>("");
   const [loadingLogs, setLoadingLogs] = useState<string[]>([]);
   const [loadingProgress, setLoadingProgress] = useState(0);
+  const [osmnxEnabled, setOsmnxEnabled] = useState(false);
 
   const handleSelection = async (source: string, destination: string) => {
     console.log("=".repeat(60));
@@ -165,6 +166,7 @@ export default function App() {
     console.log(`Source: ${source}`);
     console.log(`Destination: ${destination}`);
     console.log(`Current Priorities:`, priorities);
+    console.log(`OSMnx enabled: ${osmnxEnabled}`);
     
     // Clear previous routes and logs
     setRoutes([]);
@@ -190,7 +192,8 @@ export default function App() {
           distance: priorities.distance,
           safety: priorities.safety,
           carbonEmission: priorities.carbonEmission
-        }
+        },
+        osmnxEnabled
       };
       
       console.log("FRONTEND: Calling backend API /analyze-routes");
@@ -370,6 +373,8 @@ export default function App() {
         onContinue={handleSelection}
         isDarkMode={isDarkMode}
         toggleTheme={toggleTheme}
+        osmnxEnabled={osmnxEnabled}
+        onToggleOsmnx={setOsmnxEnabled}
       />
     );
   }
@@ -470,6 +475,22 @@ export default function App() {
               {/* Top Panel - Sensitivity Controls (Fixed Height) */}
               <div className={`shrink-0 border-b px-6 py-6 ${isDarkMode ? 'border-gray-700 bg-gray-900' : 'border-gray-200 bg-white'
                 }`}>
+                <div className="flex justify-end mb-2">
+                  <label
+                    className="flex items-center gap-2 text-xs cursor-pointer"
+                    title="Enabling this option will increase accuracy but also increase the processing time"
+                  >
+                    <input
+                      type="checkbox"
+                      className="rounded border-gray-400"
+                      checked={osmnxEnabled}
+                      onChange={(e) => setOsmnxEnabled(e.target.checked)}
+                    />
+                    <span className={isDarkMode ? 'text-gray-300' : 'text-gray-700'}>
+                      Use detailed road data (OSMnx)
+                    </span>
+                  </label>
+                </div>
                 <RouteSensitivityControls 
                   isDarkMode={isDarkMode} 
                   onPrioritiesChange={handlePrioritiesChange}

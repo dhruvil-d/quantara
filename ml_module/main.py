@@ -1,13 +1,11 @@
 """
-Main Orchestrator for Supply Chain Rerouting and Resilience Scoring System
+Main Orchestrator for Supply Chain Route Analysis
 
-This is the master file that coordinates all modules to:
-1. Accept user parameters (weights, priorities, source, destination)
-2. Get routes from Google Maps API (with fallback)
-3. Extract route information (turns, distances, corners, etc.)
-4. Gather weather, road, and risk data
-5. Score routes using Gemini AI
-6. Return ranked routes with resilience scores
+Coordinates all analysis modules to:
+1. Get routes from Google Maps API (with OSRM fallback)
+2. Analyze time, distance, carbon emissions, and road quality
+3. Calculate resilience scores based on user priorities
+4. Return ranked routes with comprehensive metrics
 """
 
 from typing import Dict, List, Optional, Tuple, Any
@@ -18,57 +16,58 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
 from ml_module.routes.google_maps_client import GoogleMapsClient
-from ml_module.routes.fallback_routes import OpenRouteServiceClient
-from ml_module.weather.weather_client import WeatherClient
-from ml_module.road_data.road_analyzer import RoadAnalyzer
-from ml_module.risk_analysis.political_risk import PoliticalRiskAnalyzer
-from ml_module.resilience.gemini_scorer import GeminiResilienceScorer
-from ml_module.utils.logger import setup_logger, get_logger
+from ml_module.routes.osrm_client import OSRMClient
+from ml_module.analysis.time_analysis import TimeAnalyzer
+from ml_module.analysis.distance_analysis import DistanceAnalyzer
+from ml_module.analysis.carbon_analysis import CarbonAnalyzer
+from ml_module.analysis.road_analysis import RoadAnalyzer
+from ml_module.analysis.weather_analysis import WeatherAnalyzer
+from ml_module.analysis.segmentation import extract_segments_for_routes
+from ml_module.scoring.resilience_calculator import ResilienceCalculator
+from ml_module.utils.logger import get_logger
 
-# Set up logging
-logger = setup_logger("ml_module.main")
+logger = get_logger("ml_module.main")
 
 
-class SupplyChainReroutingSystem:
+class RouteAnalysisSystem:
     """
-    Main orchestrator for the supply chain rerouting system
+    Main orchestrator for route analysis system.
+    
+    Coordinates route fetching, analysis, and scoring to provide
+    comprehensive route recommendations.
     """
     
-    def __init__(
-        self,
-        google_maps_api_key: Optional[str] = None,
-        gemini_api_key: Optional[str] = None,
-        openrouteservice_api_key: Optional[str] = None
-    ):
-        """
-        Initialize the supply chain rerouting system.
+    def __init__(self):
+        """Initialize all components of the analysis system."""
+        logger.info("="*60)
+        logger.info("INITIALIZING ROUTE ANALYSIS SYSTEM")
+        logger.info("="*60)
         
-        Args:
-            google_maps_api_key: Google Maps API key (optional, can load from env)
-            gemini_api_key: Gemini API key (optional, can load from env)
-            openrouteservice_api_key: OpenRouteService API key for fallback
-        """
-        logger.info("Initializing Supply Chain Rerouting System")
+        # Initialize route clients
+        self.google_maps_client = GoogleMapsClient()
+        self.osrm_client = OSRMClient()
         
-        # Initialize clients
-        self.google_maps_client = GoogleMapsClient(google_maps_api_key)
-        self.fallback_routes_client = OpenRouteServiceClient(openrouteservice_api_key)
-        self.weather_client = WeatherClient()
+        # Initialize analyzers
+        self.time_analyzer = TimeAnalyzer()
+        self.distance_analyzer = DistanceAnalyzer()
+        self.carbon_analyzer = CarbonAnalyzer()
+        self.weather_analyzer = WeatherAnalyzer()
         self.road_analyzer = RoadAnalyzer()
-        self.risk_analyzer = PoliticalRiskAnalyzer()
-        self.gemini_scorer = GeminiResilienceScorer(gemini_api_key)
         
-        logger.info("All modules initialized")
+        # Initialize scorer
+        self.resilience_calculator = ResilienceCalculator()
+        
+        logger.info("All components initialized successfully")
+        logger.info("="*60)
     
-    def analyze_routes(
-        self,
-        origin: Tuple[float, float],
-        destination: Tuple[float, float],
-        user_priorities: Optional[Dict[str, float]] = None,
-        origin_name: Optional[str] = None,
-        destination_name: Optional[str] = None,
-        max_alternatives: int = 3
-    ) -> Dict[str, Any]:
+    def analyze_routes(self,
+                      origin: Tuple[float, float],
+                      destination: Tuple[float, float],
+                      user_priorities: Optional[Dict[str, float]] = None,
+                      origin_name: Optional[str] = None,
+                      destination_name: Optional[str] = None,
+                      max_alternatives: int = 3,
+                      osmnx_enabled: Optional[bool] = None) -> Dict[str, Any]:
         """
         Main function to analyze routes and return resilience scores.
         
@@ -76,24 +75,47 @@ class SupplyChainReroutingSystem:
             origin: (latitude, longitude) of origin
             destination: (latitude, longitude) of destination
             user_priorities: Dictionary with user priorities/weights:
-                - carbon_emission: Weight for carbon emission (0-1)
                 - time: Weight for time (0-1)
                 - distance: Weight for distance (0-1)
-                - safety: Weight for safety (0-1)
+                - carbon_emission: Weight for carbon emission (0-1)
+                - road_quality: Weight for road quality (0-1)
             origin_name: Optional name of origin location
             destination_name: Optional name of destination location
             max_alternatives: Maximum number of alternative routes to analyze
         
         Returns:
             Dictionary with:
-            - routes: List of analyzed routes with all data
-            - resilience_scores: Gemini resilience scoring results
-            - best_route: Best route recommendation
+            - routes: List of route dictionaries with all analysis data
+            - resilience_scores: Resilience scoring results
+            - best_route: Best route name
+            - analysis_complete: Boolean status
         """
-        logger.info(f"Starting route analysis: {origin} -> {destination}")
+        logger.info("="*80)
+        logger.info("STARTING COMPREHENSIVE ROUTE ANALYSIS")
+        logger.info("="*80)
+        logger.info(f"Origin: {origin_name or origin}")
+        logger.info(f"Destination: {destination_name or destination}")
+        logger.info(f"User priorities: {user_priorities}")
+        logger.info(f"Max alternatives: {max_alternatives}")
+        if osmnx_enabled is not None:
+            logger.info(f"OSMnx enabled (override from caller): {osmnx_enabled}")
+        
+        # Set default priorities if not provided
+        if not user_priorities:
+            user_priorities = {
+                "time": 0.25,
+                "distance": 0.25,
+                "carbon_emission": 0.25,
+                "road_quality": 0.25
+            }
+            logger.info(f"Using default priorities: {user_priorities}")
         
         try:
-            # Step 1: Get routes (try Google Maps, fallback to OpenRouteService)
+            # Step 1: Get routes from Google Maps (with OSRM fallback)
+            logger.info("\n" + "="*60)
+            logger.info("STEP 1: FETCHING ROUTES")
+            logger.info("="*60)
+            
             routes = self._get_routes(origin, destination, max_alternatives)
             
             if not routes:
@@ -101,56 +123,112 @@ class SupplyChainReroutingSystem:
                 return {
                     "error": "No routes found",
                     "routes": [],
-                    "resilience_scores": None
+                    "resilience_scores": None,
+                    "analysis_complete": False
                 }
             
-            logger.info(f"Found {len(routes)} route(s) to analyze")
+            logger.info(f"✓ Found {len(routes)} route(s)")
             
-            # Step 2: Enrich each route with additional data
-            enriched_routes = []
+            # Add route names
             for i, route in enumerate(routes):
-                logger.info(f"Enriching route {i+1}/{len(routes)}")
-                enriched_route = self._enrich_route(
-                    route,
-                    origin,
-                    destination,
-                    i + 1,
-                    origin_name,
-                    destination_name
-                )
-                enriched_routes.append(enriched_route)
+                if "route_name" not in route or not route["route_name"]:
+                    route["route_name"] = f"Route {i + 1}"
+
             
-            # Step 3: Score routes using Gemini
-            logger.info("Scoring routes with Gemini AI")
-            # Prepare optimized data for Gemini (only essential fields)
-            routes_for_gemini = []
-            for route in enriched_routes:
-                routes_for_gemini.append({
-                    "route_name": route.get("route_name", "Unknown"),
-                    "distance_m": route.get("distance_m", 0),
-                    "predicted_duration_min": route.get("predicted_duration_min", 0),
-                    "weather": route.get("weather", {}),
-                    "social_risk": route.get("social_risk", 50.0),
-                    "political_risk": route.get("political_risk", 50.0),
-                    "traffic_status": route.get("traffic_status", "moderate"),
-                    "road_condition": route.get("road_condition", "moderate"),
-                    "rest_stops_nearby": route.get("rest_stops_nearby", False)
-                })
+            # Step 2: Run parallel analyses
+            logger.info("\n" + "="*60)
+            logger.info("STEP 2: RUNNING ANALYSES")
+            logger.info("="*60)
             
-            resilience_scores = self.gemini_scorer.score_routes(
-                routes_for_gemini,
-                user_priorities
+            # Time analysis
+            logger.info("\n→ TIME ANALYSIS")
+            time_results = self.time_analyzer.analyze(routes)
+            time_scores = {r["route_name"]: r["time_score"] for r in time_results}
+
+            # Distance analysis
+            logger.info("\n→ DISTANCE ANALYSIS")
+            distance_results = self.distance_analyzer.analyze(routes)
+            distance_scores = {r["route_name"]: r["distance_score"] for r in distance_results}
+
+            # Extract segments for all routes (called from main.py as requested)
+            logger.info(f"\n→ Extracting segments for {len(routes)} route(s)")
+            segments_data = extract_segments_for_routes(routes)
+            # for idx, data in enumerate(segments_data):
+            #     segments = data[1] if data else []
+            #     route_name = data[0] if data else "Unknown"
+            #     logger.info(f"✓ Extracted {len(segments)} segments for {route_name}")
+            
+            # Weather analysis
+            logger.info("\n→ WEATHER ANALYSIS")
+            weather_results = []
+            for idx, data in enumerate(segments_data):
+                route_name, segments, max_length_m, min_length_m = data
+                weather_result = self.weather_analyzer.analyze(segments)
+                weather_result["route_name"] = route_name
+                weather_results.append(weather_result)
+            
+            # Road analysis - pass pre-extracted segments and weather results
+            logger.info("\n→ ROAD ANALYSIS")
+            road_results = self.road_analyzer.analyze(
+                segments_data,
+                weather_results=weather_results,
+                osmnx_enabled=osmnx_enabled,
+            )
+            road_quality_scores = {r["route_name"]: r["road_quality_score"] for r in road_results}
+            
+            # Carbon analysis
+            logger.info("\n→ CARBON EMISSION ANALYSIS")
+            carbon_results = self.carbon_analyzer.analyze(routes)
+            carbon_scores = {r["route_name"]: r["carbon_score"] for r in carbon_results}
+            
+            logger.info("\n✓ All analyses complete")
+            
+            # Step 3: Calculate resilience scores
+            logger.info("\n" + "="*60)
+            logger.info("STEP 3: CALCULATING RESILIENCE SCORES")
+            logger.info("="*60)
+            
+            route_names = [r["route_name"] for r in routes]
+            resilience_results = self.resilience_calculator.calculate(
+                routes=route_names,
+                time_scores=time_scores,
+                distance_scores=distance_scores,
+                carbon_scores=carbon_scores,
+                road_quality_scores=road_quality_scores,
+                priorities=user_priorities
             )
             
-            # Step 4: Combine results
+            # Step 4: Combine all results into enriched routes
+            logger.info("\n" + "="*60)
+            logger.info("STEP 4: COMBINING RESULTS")
+            logger.info("="*60)
+            
+            enriched_routes = self._combine_results(
+                routes=routes,
+                time_results=time_results,
+                distance_results=distance_results,
+                carbon_results=carbon_results,
+                road_results=road_results,
+                resilience_results=resilience_results
+            )
+            
+            # Format resilience scores for output
+            formatted_scores = self.resilience_calculator.format_results(resilience_results)
+            
             result = {
                 "routes": enriched_routes,
-                "resilience_scores": resilience_scores,
-                "best_route": resilience_scores.get("best_route_name") if resilience_scores else None,
+                "resilience_scores": formatted_scores,
+                "best_route": formatted_scores["best_route_name"],
                 "analysis_complete": True
             }
             
-            logger.info("Route analysis completed successfully")
+            logger.info("="*80)
+            logger.info("COMPREHENSIVE ROUTE ANALYSIS COMPLETE")
+            logger.info(f"✓ Analyzed {len(enriched_routes)} routes")
+            logger.info(f"✓ Best route: {formatted_scores['best_route_name']}")
+            logger.info(f"✓ Reason: {formatted_scores['reason_for_selection']}")
+            logger.info("="*80)
+            
             return result
             
         except Exception as e:
@@ -162,14 +240,12 @@ class SupplyChainReroutingSystem:
                 "analysis_complete": False
             }
     
-    def _get_routes(
-        self,
-        origin: Tuple[float, float],
-        destination: Tuple[float, float],
-        max_alternatives: int = 3
-    ) -> List[Dict[str, Any]]:
+    def _get_routes(self,
+                   origin: Tuple[float, float],
+                   destination: Tuple[float, float],
+                   max_alternatives: int = 3) -> List[Dict[str, Any]]:
         """
-        Get routes from Google Maps API with fallback to OpenRouteService.
+        Get routes from Google Maps API with OSRM fallback.
         
         Args:
             origin: (lat, lon) of origin
@@ -180,265 +256,117 @@ class SupplyChainReroutingSystem:
             List of route dictionaries
         """
         # Try Google Maps first
-        if self.google_maps_client.is_available():
-            logger.info("Attempting to get routes from Google Maps API")
-            routes = self.google_maps_client.get_directions(
-                origin,
-                destination,
+        logger.info("Attempting Google Maps API...")
+        routes = self.google_maps_client.get_directions(
+            origin=origin,
+            destination=destination,
+            alternatives=True
+        )
+        
+        if routes:
+            logger.info(f"✓ Google Maps returned {len(routes)} route(s)")
+            return routes[:max_alternatives]
+        
+        # Fallback to OSRM
+        logger.warning("Google Maps unavailable, trying OSRM fallback...")
+        
+        if self.osrm_client.is_available():
+            logger.info("OSRM service is available")
+            routes = self.osrm_client.get_directions(
+                origin=origin,
+                destination=destination,
                 alternatives=True
             )
             
             if routes:
-                logger.info(f"Successfully retrieved {len(routes)} routes from Google Maps")
-                return routes[:max_alternatives]
-            else:
-                logger.warning("Google Maps API failed, trying fallback")
-        
-        # Fallback to OpenRouteService
-        if self.fallback_routes_client.is_available():
-            logger.info("Using OpenRouteService fallback")
-            routes = self.fallback_routes_client.get_directions(
-                origin,
-                destination,
-                alternatives=True
-            )
-            
-            if routes:
-                logger.info(f"Successfully retrieved {len(routes)} routes from OpenRouteService")
+                logger.info(f"✓ OSRM returned {len(routes)} route(s)")
                 return routes[:max_alternatives]
         
-        logger.error("Both Google Maps and OpenRouteService failed")
+        logger.error("Both Google Maps and OSRM failed")
         return []
     
-    def _enrich_route(
-        self,
-        route: Dict[str, Any],
-        origin: Tuple[float, float],
-        destination: Tuple[float, float],
-        route_number: int,
-        origin_name: Optional[str] = None,
-        destination_name: Optional[str] = None
-    ) -> Dict[str, Any]:
+    def _combine_results(self,
+                        routes: List[Dict[str, Any]],
+                        time_results: List[Dict[str, Any]],
+                        distance_results: List[Dict[str, Any]],
+                        carbon_results: List[Dict[str, Any]],
+                        road_results: List[Dict[str, Any]],
+                        resilience_results: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
         """
-        Enrich a route with weather, road, and risk data.
+        Combine all analysis results into enriched route dictionaries.
         
         Args:
-            route: Route dictionary from API
-            origin: Origin coordinates
-            destination: Destination coordinates
-            route_number: Route number/ID
-            origin_name: Optional origin name
-            destination_name: Optional destination name
+            routes: Original route data
+            time_results: Time analysis results
+            distance_results: Distance analysis results
+            carbon_results: Carbon analysis results
+            road_results: Road analysis results
+            resilience_results: Resilience calculation results
         
         Returns:
-            Enriched route dictionary
+            List of enriched route dictionaries
         """
-        route_name = route.get("summary", f"Route {route_number}")
-        if not route_name or route_name == "":
-            route_name = f"Route {route_number}"
+        # Create lookup dictionaries
+        time_lookup = {r["route_name"]: r for r in time_results}
+        distance_lookup = {r["route_name"]: r for r in distance_results}
+        carbon_lookup = {r["route_name"]: r for r in carbon_results}
+        road_lookup = {r["route_name"]: r for r in road_results}
+        resilience_lookup = {r["route_name"]: r for r in resilience_results}
         
-        # Get coordinates for analysis
-        coordinates = self._extract_coordinates(route)
+        enriched = []
         
-        # Get weather data
-        weather = self.weather_client.fetch_weather_along_route(
-            coordinates,
-            sample_points=5
-        )
+        for route in routes:
+            route_name = route.get("route_name", "Unknown")
+            
+            # Get analysis results for this route
+            time_data = time_lookup.get(route_name, {})
+            distance_data = distance_lookup.get(route_name, {})
+            carbon_data = carbon_lookup.get(route_name, {})
+            road_data = road_lookup.get(route_name, {})
+            resilience_data = resilience_lookup.get(route_name, {})
+            
+            # Combine into enriched route
+            enriched_route = {
+                "route_name": route_name,
+                
+                # Original route data
+                "distance_m": route.get("distance_m", 0),
+                "duration_s": route.get("duration_s", 0),
+                "steps": route.get("steps", []),
+                "coordinates": route.get("coordinates", []),
+                
+                # Time analysis
+                "predicted_duration_min": time_data.get("duration_s", 0) / 60,
+                "duration_text": time_data.get("duration_text", ""),
+                "time_score": time_data.get("time_score", 0),
+                
+                # Distance analysis
+                "distance_text": distance_data.get("distance_text", ""),
+                "distance_score": distance_data.get("distance_score", 0),
+                
+                # Carbon analysis
+                "total_carbon_kg": carbon_data.get("total_carbon_kg", 0),
+                "carbon_score": carbon_data.get("carbon_score", 0),
+                "carbon_per_km": carbon_data.get("carbon_per_km", 0),
+                
+                # Road analysis
+                "road_segments": road_data.get("road_segments", []),
+                "road_quality_score": road_data.get("road_quality_score", 0),
+                "avg_weather_risk": road_data.get("avg_weather_risk", 0),
+                "total_rainfall": road_data.get("total_rainfall", 0),
+                "road_type_distribution": road_data.get("road_type_distribution", {}),
+                
+                # Resilience score
+                "overall_resilience_score": resilience_data.get("overall_resilience_score", 0),
+                "component_scores": resilience_data.get("component_scores", {}),
+                "weighted_contributions": resilience_data.get("weighted_contributions", {}),
+            }
+            
+            enriched.append(enriched_route)
+            
+            logger.debug(f"Combined results for '{route_name}': "
+                        f"resilience={enriched_route['overall_resilience_score']:.2f}")
         
-        # Get road types and analysis
-        road_types = self.road_analyzer.get_road_types_along_route(
-            origin,
-            destination
-        )
-        road_width = self.road_analyzer.estimate_road_width(road_types)
-        road_condition = self.road_analyzer.assess_road_condition(road_types, weather)
-        rest_stops = self.road_analyzer.get_rest_stops_nearby(coordinates)
-        
-        # Get political/social risk
-        risk_data = self.risk_analyzer.analyze_route_risk(
-            origin_name or f"{origin[0]},{origin[1]}",
-            destination_name or f"{destination[0]},{destination[1]}",
-            route_name
-        )
-        
-        # Calculate predicted duration (convert seconds to minutes)
-        duration_min = route.get("duration_s", 0) / 60
-        
-        # Determine traffic status (simplified - can be enhanced)
-        traffic_status = self._estimate_traffic_status(route, weather)
-        
-        enriched = {
-            "route_name": route_name,
-            "route_number": route_number,
-            "distance_m": route.get("distance_m", 0),
-            "distance_text": route.get("distance_text", ""),
-            "duration_s": route.get("duration_s", 0),
-            "duration_text": route.get("duration_text", ""),
-            "predicted_duration_min": duration_min,
-            "weather": weather,
-            "road_types": road_types,
-            "road_width": road_width,
-            "road_condition": road_condition,
-            "political_risk": risk_data.get("political_risk", 50.0),
-            "social_risk": risk_data.get("social_risk", 50.0),
-            "traffic_status": traffic_status,
-            "rest_stops_nearby": rest_stops,
-            "steps": route.get("steps", []),
-            "coordinates": coordinates
-        }
+        logger.info(f"✓ Combined data for {len(enriched)} routes")
         
         return enriched
-    
-    def _extract_coordinates(self, route: Dict[str, Any]) -> List[Tuple[float, float]]:
-        """
-        Extract coordinates from route data.
-        
-        Args:
-            route: Route dictionary
-        
-        Returns:
-            List of (lat, lon) coordinate tuples
-        """
-        # Try different coordinate sources
-        if "coordinates" in route:
-            return route["coordinates"]
-        
-        # Extract from steps
-        coordinates = []
-        for step in route.get("steps", []):
-            start = step.get("start_location", {})
-            if start:
-                coordinates.append((start.get("lat", 0), start.get("lng", 0)))
-        
-        # Add destination from last step
-        if route.get("steps"):
-            last_step = route["steps"][-1]
-            end = last_step.get("end_location", {})
-            if end:
-                coordinates.append((end.get("lat", 0), end.get("lng", 0)))
-        
-        return coordinates if coordinates else []
-    
-    def _estimate_traffic_status(self, route: Dict[str, Any], weather: Dict[str, Any]) -> str:
-        """
-        Estimate traffic status based on route and weather data.
-        
-        Args:
-            route: Route dictionary
-            weather: Weather data dictionary
-        
-        Returns:
-            Traffic status string: "low", "moderate", or "heavy"
-        """
-        # Simple heuristic based on duration and distance
-        duration_s = route.get("duration_s", 0)
-        distance_m = route.get("distance_m", 0)
-        
-        if distance_m == 0:
-            return "moderate"
-        
-        # Calculate average speed (m/s)
-        avg_speed_ms = distance_m / duration_s if duration_s > 0 else 0
-        avg_speed_kmh = avg_speed_ms * 3.6
-        
-        # Adjust for weather
-        if weather.get("rainfall_mm", 0) > 5:
-            avg_speed_kmh *= 0.8  # Reduce speed estimate in rain
-        
-        # Classify traffic
-        if avg_speed_kmh < 30:
-            return "heavy"
-        elif avg_speed_kmh < 50:
-            return "moderate"
-        else:
-            return "low"
-
-
-def main():
-    """
-    Example usage of the Supply Chain Rerouting System
-    
-    NOTE: This is a demonstration function. In production, coordinates
-    should be provided by the backend API after geocoding user-selected locations.
-    The ML module does NOT perform geocoding - it only accepts coordinates.
-    """
-    import sys
-    
-    # Check if coordinates are provided as command-line arguments
-    if len(sys.argv) >= 5:
-        try:
-            origin_lat = float(sys.argv[1])
-            origin_lng = float(sys.argv[2])
-            dest_lat = float(sys.argv[3])
-            dest_lng = float(sys.argv[4])
-            origin_name = sys.argv[5] if len(sys.argv) > 5 else "Origin"
-            dest_name = sys.argv[6] if len(sys.argv) > 6 else "Destination"
-        except ValueError:
-            print("Error: Invalid coordinate format. Use: python main.py <origin_lat> <origin_lng> <dest_lat> <dest_lng> [origin_name] [dest_name]")
-            return
-    else:
-        print("Usage: python main.py <origin_lat> <origin_lng> <dest_lat> <dest_lng> [origin_name] [dest_name]")
-        print("Example: python main.py 26.9124 75.7873 28.6139 77.2090 Jaipur Delhi")
-        print("\nNote: The ML module does NOT perform geocoding.")
-        print("Coordinates must be provided by the backend after geocoding user-selected locations.")
-        return
-    
-    origin = (origin_lat, origin_lng)
-    destination = (dest_lat, dest_lng)
-    
-    user_priorities = {
-        "time": 0.4,
-        "distance": 0.3,
-        "safety": 0.2,
-        "carbon_emission": 0.1
-    }
-    
-    # Initialize system
-    system = SupplyChainReroutingSystem()
-    
-    # Analyze routes
-    result = system.analyze_routes(
-        origin=origin,
-        destination=destination,
-        user_priorities=user_priorities,
-        origin_name=origin_name,
-        destination_name=dest_name
-    )
-    
-    # Print results
-    print("\n" + "="*50)
-    print("SUPPLY CHAIN ROUTE ANALYSIS RESULTS")
-    print("="*50)
-    
-    if result.get("error"):
-        print(f"Error: {result['error']}")
-        return
-    
-    print(f"\nAnalyzed {len(result['routes'])} route(s)")
-    
-    if result.get("resilience_scores"):
-        scores = result["resilience_scores"]
-        print(f"\nBest Route: {scores.get('best_route_name')}")
-        print(f"Reason: {scores.get('reason_for_selection')}")
-        
-        print("\nRoute Rankings:")
-        for i, route_name in enumerate(scores.get("ranked_routes", []), 1):
-            route_data = next(
-                (r for r in scores.get("routes", []) if r["route_name"] == route_name),
-                None
-            )
-            if route_data:
-                print(f"{i}. {route_name}")
-                print(f"   Resilience Score: {route_data['overall_resilience_score']}")
-                print(f"   Weather Risk: {route_data['weather_risk_score']}")
-                print(f"   Road Safety: {route_data['road_safety_score']}")
-                print(f"   Social Risk: {route_data['social_risk_score']}")
-                print(f"   Traffic Risk: {route_data['traffic_risk_score']}")
-                print(f"   Summary: {route_data['short_summary']}")
-                print()
-
-
-if __name__ == "__main__":
-    main()
-
