@@ -137,191 +137,64 @@ class RoadAnalyzer:
         
         return results
     
-    def _analyze_road_types(self, segments: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
+    def analyze_segment(self, 
+                       mid_point: Tuple[float, float], 
+                       length_m: float, 
+                       osmnx_enabled: bool = False) -> Dict[str, Any]:
         """
-        Analyze road types for segments using OSMnx or fallback estimation.
+        Analyze a single segment based on valid parameters.
         
         Args:
-            segments: List of segments with coordinates
-        
-        Returns:
-            Segments with added road_type, road_width, base_quality fields
-        """
-        logger.debug(f"Analyzing road types for {len(segments)} segments")
-        
-        for segment in segments:
-            # Try OSMnx if available for this analyzer instance
-            if self.osmnx_available:
-                road_type = self._get_osmnx_road_type(segment["start"], segment["end"])
-            else:
-                road_type = self._estimate_road_type(segment["length_m"])
+            mid_point: (lat, lon) tuple
+            length_m: Length in meters
+            osmnx_enabled: Whether to use OSMnx
             
-            segment["road_type"] = road_type
-            segment["road_width"] = self.WIDTH_MAPPING.get(road_type, 5.0)
-            segment["base_quality"] = self.QUALITY_SCORES.get(road_type, 50)
-        
-        return segments
-    
-    def _get_osmnx_road_type(self, start: Tuple[float, float], end: Tuple[float, float]) -> str:
-        """
-        Get road type using OSMnx by querying OpenStreetMap.
-        
-        Args:
-            start: (lat, lon) start coordinates
-            end: (lat, lon) end coordinates
-        
         Returns:
-            Road type string
+            Dictionary with road type, width, base quality
+        """
+        # 1. Determine road type
+        if osmnx_enabled and self.osmnx_available:
+            road_type = self._get_osmnx_road_type_at_point(mid_point)
+        else:
+            road_type = self._estimate_road_type(length_m)
+            
+        # 2. Get properties
+        road_width = self.WIDTH_MAPPING.get(road_type, 5.0)
+        base_quality = self.QUALITY_SCORES.get(road_type, 50)
+
+        logger.debug(f"Road at ({mid_point[0]:.4f}, {mid_point[1]:.4f}): road_type={road_type}, road_width={road_width:.2f}m, base_quality={base_quality}")
+        
+        return {
+            "road_type": road_type,
+            "road_width": road_width,
+            "base_quality": base_quality
+        }
+
+    def _get_osmnx_road_type_at_point(self, point: Tuple[float, float]) -> str:
+        """
+        Get road type at a specific point using OSMnx.
         """
         try:
-            # Use midpoint for road type query
-            mid_lat = (start[0] + end[0]) / 2
-            mid_lon = (start[1] + end[1]) / 2
+            lat, lon = point
+            G = ox.graph_from_point((lat, lon), dist=500, network_type='drive')
+            node = ox.nearest_nodes(G, lon, lat)
             
-            # Get road network around midpoint
-            G = ox.graph_from_point((mid_lat, mid_lon), dist=1000, network_type='drive')
-            
-            # Find nearest nodes
-            start_node = ox.nearest_nodes(G, start[1], start[0])
-            end_node = ox.nearest_nodes(G, end[1], end[0])
-            
-            # Get edge data
-            if G.has_edge(start_node, end_node):
-                edge_data = G[start_node][end_node][0]
+            # Check edges connected to this node
+            for neighbor in G.neighbors(node):
+                edge_data = G[node][neighbor][0]
                 highway = edge_data.get('highway', 'unknown')
-                
                 if isinstance(highway, list):
                     highway = highway[0]
-                
                 return str(highway)
-            
-            # Fallback to neighbor edges
-            if start_node in G:
-                for neighbor in G.neighbors(start_node):
-                    edge_data = G[start_node][neighbor][0]
-                    highway = edge_data.get('highway', 'unknown')
-                    if isinstance(highway, list):
-                        highway = highway[0]
-                    return str(highway)
-            
-            return 'secondary'  # Default fallback
-            
-        except Exception as e:
-            logger.debug(f"OSMnx query failed: {str(e)}")
+                
             return 'secondary'
-    
+        except Exception:
+            return 'secondary'
+
     def _estimate_road_type(self, length_m: float) -> str:
-        """
-        Estimate road type based on segment length (fallback when OSMnx unavailable).
-        
-        Args:
-            length_m: Segment length in meters
-        
-        Returns:
-            Estimated road type
-        """
-        # Longer segments typically indicate highways
-        if length_m > 10000:
-            return 'motorway'
-        elif length_m > 5000:
-            return 'primary'
-        elif length_m > 2000:
-            return 'secondary'
-        else:
-            return 'tertiary'
-    
-    def _calculate_road_quality(self, segments: List[Dict[str, Any]], 
-                                weather_data: Optional[Dict[str, Any]] = None) -> Dict[str, Any]:
-        """
-        Calculate overall road quality score considering weather risks.
-        
-        Args:
-            segments: List of segments with road data
-            weather_data: Optional weather analysis result dictionary
-        
-        Returns:
-            Dictionary with road quality analysis
-        """
-        # Extract weather metrics if available
-        if weather_data:
-            avg_weather_risk = weather_data.get("avg_weather_risk", 0.0)
-            avg_rainfall = weather_data.get("avg_rainfall", 0.0)
-            avg_visibility = weather_data.get("avg_visibility", 10000.0)
-            avg_windspeed = weather_data.get("avg_windspeed", 5.0)
-            avg_temperature = weather_data.get("avg_temperature", 20.0)
-            avg_cloudcover = weather_data.get("avg_cloudcover", 30)
-            weather_samples = weather_data.get("weather_data", [])
-        else:
-            # Default values when no weather data
-            avg_weather_risk = 0.0
-            avg_rainfall = 0.0
-            avg_visibility = 10000.0
-            avg_windspeed = 5.0
-            avg_temperature = 20.0
-            avg_cloudcover = 30
-            weather_samples = []
-            logger.debug("No weather data provided, using default values")
-        
-        # Calculate weighted road quality score
-        total_length = sum(seg["length_m"] for seg in segments)
-        weighted_quality = 0
-        
-        road_type_distribution = defaultdict(float)
-        
-        for segment in segments:
-            base_quality = segment["base_quality"]
-            length = segment["length_m"]
-            road_type = segment["road_type"]
-            
-            # Adjust quality for weather impact
-            adjusted_quality = base_quality - (avg_weather_risk * 100)
-            adjusted_quality = max(0, adjusted_quality)
-            
-            weighted_quality += adjusted_quality * length
-            road_type_distribution[road_type] += length / 1000  # in km
-        
-        # Normalize road quality score to 0-1
-        road_quality_score = (weighted_quality / total_length) / 100 if total_length > 0 else 0.5
-        road_quality_score = max(0.0, min(1.0, road_quality_score))
-        
-        # Add weather to segments for detailed output
-        for segment in segments:
-            # Assign average weather to segments (simplified)
-            segment["weather"] = {
-                "rainfall_mm": avg_rainfall,
-                "visibility_m": avg_visibility,
-                "windspeed": avg_windspeed,
-                "temperature": avg_temperature,
-                "cloudcover": avg_cloudcover
-            }
-        
-        result = {
-            "road_segments": segments,
-            "road_quality_score": road_quality_score,
-            "avg_weather_risk": avg_weather_risk,
-            "total_rainfall": avg_rainfall,
-            "road_type_distribution": dict(road_type_distribution)
-        }
-        
-        return result
-    
-    def _create_default_result(self, route_name: str, distance_m: float) -> Dict[str, Any]:
-        """
-        Create default result when analysis fails.
-        
-        Args:
-            route_name: Route identifier
-            distance_m: Route distance
-        
-        Returns:
-            Default analysis result
-        """
-        return {
-            "route_name": route_name,
-            "road_segments": [],
-            "road_quality_score": 0.5,
-            "avg_weather_risk": 0.5,
-            "total_rainfall": 0.0,
-            "road_type_distribution": {}
-        }
+        """Estimate road type based on segment length."""
+        if length_m > 10000: return 'motorway'
+        elif length_m > 5000: return 'primary'
+        elif length_m > 2000: return 'secondary'
+        else: return 'tertiary'
 

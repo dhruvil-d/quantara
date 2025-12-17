@@ -79,10 +79,15 @@ def extract_segments(route: Dict[str, Any]) -> Tuple[List[Dict[str, Any]], float
         # Calculate segment length using haversine formula
         length_m = haversine_distance(start_lat, start_lon, end_lat, end_lon)
 
+        # Calculate mid-point
+        mid_lat = (start_lat + end_lat) / 2
+        mid_lon = (start_lon + end_lon) / 2
+
         segment = {
             "segment_id": segment_id,
             "start": (start_lat, start_lon),
             "end": (end_lat, end_lon),
+            "mid": (mid_lat, mid_lon),
             "length_m": length_m,
         }
 

@@ -56,10 +56,10 @@ const logFile = path.join(logDir, "backend.log");
 function log(message, level = "INFO") {
     const timestamp = new Date().toISOString();
     const logMessage = `[${timestamp}] [${level}] ${message}`;
-    
+
     // Console output
     console.log(logMessage);
-    
+
     // File output
     fs.appendFileSync(logFile, logMessage + "\n", "utf8");
 }
@@ -114,7 +114,7 @@ app.get("/geocode", async (req, res) => {
     try {
         const url = `https://photon.komoot.io/api/?q=${encodeURIComponent(city)}&limit=1`;
         log(`Photon API call: ${url}`);
-        
+
         const response = await fetch(url);
         const data = await response.json();
 
@@ -148,7 +148,7 @@ app.get("/route", async (req, res) => {
 
     if (!GH_KEY) {
         log("Route request failed: Missing GH_KEY in .env", "ERROR");
-        return res.status(500).json({ 
+        return res.status(500).json({
             error: "Missing GH_KEY in .env",
             details: "Please add GH_KEY=your_graphhopper_api_key to your .env file in the backend directory"
         });
@@ -176,7 +176,7 @@ app.get("/route", async (req, res) => {
 
         if (!response.ok) {
             log(`GraphHopper error: ${JSON.stringify(data)}`, "ERROR");
-            
+
             // Provide more specific error messages
             let errorMessage = "Routing failed";
             if (data.message) {
@@ -188,10 +188,10 @@ app.get("/route", async (req, res) => {
             } else if (response.status === 429) {
                 errorMessage = "GraphHopper API rate limit exceeded. Please try again later.";
             }
-            
-            return res.status(response.status >= 400 && response.status < 500 ? response.status : 500).json({ 
+
+            return res.status(response.status >= 400 && response.status < 500 ? response.status : 500).json({
                 error: errorMessage,
-                details: data 
+                details: data
             });
         }
 
@@ -200,7 +200,7 @@ app.get("/route", async (req, res) => {
     } catch (err) {
         log(`GraphHopper exception: ${err.message}`, "ERROR");
         log(`Stack trace: ${err.stack}`, "ERROR");
-        return res.status(500).json({ 
+        return res.status(500).json({
             error: "Routing failed",
             details: err.message || "Unknown error occurred while fetching route from GraphHopper"
         });
@@ -211,12 +211,12 @@ app.get("/route", async (req, res) => {
 // 🧠 ML Route Analysis (Full Analysis)
 // -----------------------------
 app.post("/analyze-routes", async (req, res) => {
-    log("="*60);
+    log("=" * 60);
     log("=== FULL ROUTE ANALYSIS REQUEST ===");
-    log("="*60);
-    
+    log("=" * 60);
+
     const { source, destination, priorities, osmnxEnabled } = req.body;
-    
+
     log(`Source: ${source}`);
     log(`Destination: ${destination}`);
     log(`Priorities: ${JSON.stringify(priorities)}`);
@@ -235,7 +235,7 @@ app.post("/analyze-routes", async (req, res) => {
         log(`Geocoding source: ${source}...`);
         const sourceGeo = await fetch(`https://photon.komoot.io/api/?q=${encodeURIComponent(source)}&limit=1`);
         const sourceData = await sourceGeo.json();
-        
+
         log(`Geocoding destination: ${destination}...`);
         const destGeo = await fetch(`https://photon.komoot.io/api/?q=${encodeURIComponent(destination)}&limit=1`);
         const destData = await destGeo.json();
@@ -263,14 +263,14 @@ app.post("/analyze-routes", async (req, res) => {
             carbon_emission: (priorities?.carbonEmission || 25) / 100,
             road_quality: (priorities?.safety || 25) / 100  // Map 'safety' to 'road_quality'
         };
-        
+
         log(`Normalized priorities: ${JSON.stringify(userPriorities)}`);
 
         // Step 3: Call Python ML module
         log("\n→ ML MODULE CALL");
         const pythonScript = path.resolve(__dirname, "..", "ml_module", "run_analysis.py");
         log(`Python script: ${pythonScript}`);
-        
+
         const inputData = JSON.stringify({
             source_lat: sourceLat,
             source_lon: sourceLon,
@@ -281,7 +281,7 @@ app.post("/analyze-routes", async (req, res) => {
             priorities: userPriorities,
             osmnx_enabled: typeof osmnxEnabled === "boolean" ? osmnxEnabled : undefined
         });
-        
+
         log(`Input data size: ${inputData.length} bytes`);
         log(`Spawning Python process...`);
 
@@ -310,12 +310,12 @@ app.post("/analyze-routes", async (req, res) => {
 
         pythonProcess.on("close", (code) => {
             log(`Python process exited with code: ${code}`);
-            
+
             if (code !== 0) {
                 log(`Python error (code ${code}): ${stderr}`, "ERROR");
-                return res.status(500).json({ 
-                    error: "ML analysis failed", 
-                    details: stderr 
+                return res.status(500).json({
+                    error: "ML analysis failed",
+                    details: stderr
                 });
             }
 
@@ -324,7 +324,7 @@ app.post("/analyze-routes", async (req, res) => {
                 log("\n→ RESPONSE TRANSFORMATION");
                 const lines = stdout.trim().split("\n");
                 let jsonLine = "";
-                
+
                 for (let i = lines.length - 1; i >= 0; i--) {
                     const line = lines[i].trim();
                     if (line.startsWith("{")) {
@@ -332,7 +332,7 @@ app.post("/analyze-routes", async (req, res) => {
                         break;
                     }
                 }
-                
+
                 if (!jsonLine) {
                     log("No JSON found in Python output", "ERROR");
                     throw new Error("No JSON found in Python output");
@@ -349,14 +349,14 @@ app.post("/analyze-routes", async (req, res) => {
                 // Transform ML output to frontend format
                 const resilience_scores = result.resilience_scores || {};
                 const scoredRoutes = resilience_scores.routes || [];
-                
+
                 log(`Routes received: ${result.routes?.length || 0}`);
                 log(`Resilience scores: ${scoredRoutes.length}`);
-                
+
                 const routes = result.routes?.map((route, index) => {
                     const routeName = route.route_name || `Route ${index + 1}`;
                     const scoreData = scoredRoutes.find(r => r.route_name === routeName) || {};
-                    
+
                     const resilienceScore100 = scoreData.overall_resilience_score || 0;
                     const resilienceScore = resilienceScore100 / 10;  // Convert to 0-10 scale
 
@@ -376,8 +376,8 @@ app.post("/analyze-routes", async (req, res) => {
                     }
 
                     const durationMin = route.predicted_duration_min || 0;
-                    const timeText = durationMin >= 60 
-                        ? `${Math.round(durationMin / 60)} hrs` 
+                    const timeText = durationMin >= 60
+                        ? `${Math.round(durationMin / 60)} hrs`
                         : `${Math.round(durationMin)} mins`;
 
                     const distanceKm = Math.round(route.distance_m / 1000);
@@ -416,11 +416,11 @@ app.post("/analyze-routes", async (req, res) => {
                             origin: [sourceLat, sourceLon],
                             destination: [destLat, destLon]
                         },
-                        geminiOutput: {
+                        analysisData: {
                             weather_risk_score: Math.round(weatherRisk * 100),
-                            road_safety_score: Math.round((route.road_quality_score || 0.5) * 100),
-                            social_risk_score: 0,
-                            traffic_risk_score: 0,
+                            road_safety_score: Math.round((route.road_safety_score || 0.5) * 100),
+                            social_risk_score: 0, // Placeholder as social risk is not yet implemented
+                            traffic_risk_score: 0, // Placeholder
                             overall_resilience_score: resilienceScore100,
                             short_summary: shortSummary,
                             reasoning: reasoning
@@ -430,7 +430,7 @@ app.post("/analyze-routes", async (req, res) => {
 
                 log(`Transformed ${routes.length} routes for frontend`);
                 log(`Recommended routes (score > 8): ${routes.filter(r => r.resilienceScore > 8).length}`);
-                
+
                 // Cache routes for re-scoring
                 const cacheKey = `${source}_${destination}`;
                 routeCache.set(cacheKey, {
@@ -440,21 +440,21 @@ app.post("/analyze-routes", async (req, res) => {
                     coordinates: { origin: [sourceLat, sourceLon], destination: [destLat, destLon] }
                 });
                 log(`✓ Cached routes for ${cacheKey}`);
-                
-                log("="*60);
+
+                log("=" * 60);
                 log("=== ROUTE ANALYSIS COMPLETE ===");
-                log("="*60);
+                log("=" * 60);
 
                 res.json({
                     routes: routes,
                     bestRoute: result.best_route,
                     analysisComplete: result.analysis_complete
                 });
-                
+
             } catch (parseError) {
                 log(`Parse error: ${parseError.message}`, "ERROR");
-                return res.status(500).json({ 
-                    error: "Failed to parse ML results", 
+                return res.status(500).json({
+                    error: "Failed to parse ML results",
                     details: parseError.message
                 });
             }
@@ -471,12 +471,12 @@ app.post("/analyze-routes", async (req, res) => {
 // 🔄 Re-score Routes (Only Resilience Calculation)
 // -----------------------------
 app.post("/rescore-routes", async (req, res) => {
-    log("="*60);
+    log("=" * 60);
     log("=== RE-SCORING REQUEST ===");
-    log("="*60);
-    
+    log("=" * 60);
+
     const { source, destination, priorities } = req.body;
-    
+
     log(`Source: ${source}`);
     log(`Destination: ${destination}`);
     log(`New priorities: ${JSON.stringify(priorities)}`);
@@ -488,11 +488,11 @@ app.post("/rescore-routes", async (req, res) => {
 
     const cacheKey = `${source}_${destination}`;
     const cached = routeCache.get(cacheKey);
-    
+
     if (!cached) {
         log("Re-scoring failed: No cached routes found", "ERROR");
-        return res.status(400).json({ 
-            error: "No routes found. Please select source and destination first." 
+        return res.status(400).json({
+            error: "No routes found. Please select source and destination first."
         });
     }
 
@@ -503,19 +503,19 @@ app.post("/rescore-routes", async (req, res) => {
             carbon_emission: (priorities?.carbonEmission || 25) / 100,
             road_quality: (priorities?.safety || 25) / 100
         };
-        
+
         log(`Normalized priorities: ${JSON.stringify(userPriorities)}`);
         log(`Using cached routes (${cached.routes.length} routes)`);
 
         log("\n→ ML MODULE CALL (rescore only)");
         const pythonScript = path.resolve(__dirname, "..", "ml_module", "rescore_routes.py");
         log(`Python script: ${pythonScript}`);
-        
+
         const inputData = JSON.stringify({
             routes_data: cached.routes,
             priorities: userPriorities
         });
-        
+
         log(`Input data size: ${inputData.length} bytes`);
 
         const pythonProcess = spawn(`python "${pythonScript}"`, [], {
@@ -543,19 +543,19 @@ app.post("/rescore-routes", async (req, res) => {
 
         pythonProcess.on("close", (code) => {
             log(`Python process exited with code: ${code}`);
-            
+
             if (code !== 0) {
                 log(`Python error (code ${code}): ${stderr}`, "ERROR");
-                return res.status(500).json({ 
-                    error: "Re-scoring failed", 
-                    details: stderr 
+                return res.status(500).json({
+                    error: "Re-scoring failed",
+                    details: stderr
                 });
             }
 
             try {
                 const lines = stdout.trim().split("\n");
                 let jsonLine = "";
-                
+
                 for (let i = lines.length - 1; i >= 0; i--) {
                     const line = lines[i].trim();
                     if (line.startsWith("{")) {
@@ -563,7 +563,7 @@ app.post("/rescore-routes", async (req, res) => {
                         break;
                     }
                 }
-                
+
                 if (!jsonLine) {
                     log("No JSON found in Python output", "ERROR");
                     throw new Error("No JSON found in Python output");
@@ -579,11 +579,11 @@ app.post("/rescore-routes", async (req, res) => {
 
                 const resilience_scores = result.resilience_scores || {};
                 const scoredRoutes = resilience_scores.routes || [];
-                
+
                 const routes = result.routes?.map((route, index) => {
                     const routeName = route.route_name || `Route ${index + 1}`;
                     const scoreData = scoredRoutes.find(r => r.route_name === routeName) || {};
-                    
+
                     const resilienceScore100 = scoreData.overall_resilience_score || 0;
                     const resilienceScore = resilienceScore100 / 10;
 
@@ -597,8 +597,8 @@ app.post("/rescore-routes", async (req, res) => {
                     else if (weatherRisk > 0.4) disruptionRisk = "Medium";
 
                     const durationMin = route.predicted_duration_min || 0;
-                    const timeText = durationMin >= 60 
-                        ? `${Math.round(durationMin / 60)} hrs` 
+                    const timeText = durationMin >= 60
+                        ? `${Math.round(durationMin / 60)} hrs`
                         : `${Math.round(durationMin)} mins`;
 
                     const distanceKm = Math.round(route.distance_m / 1000);
@@ -631,11 +631,12 @@ app.post("/rescore-routes", async (req, res) => {
                         },
                         isRecommended: resilienceScore > 8,
                         coordinates: cached.coordinates,
-                        geminiOutput: {
+                        coordinates: cached.coordinates,
+                        analysisData: {
                             weather_risk_score: Math.round(weatherRisk * 100),
-                            road_safety_score: Math.round((route.road_quality_score || 0.5) * 100),
-                            social_risk_score: 0,
-                            traffic_risk_score: 0,
+                            road_safety_score: Math.round((route.road_safety_score || route.road_quality_score || 0.5) * 100),
+                            social_risk_score: 0, // Placeholder
+                            traffic_risk_score: 0, // Placeholder
                             overall_resilience_score: resilienceScore100,
                             short_summary: shortSummary,
                             reasoning: reasoning
@@ -645,21 +646,21 @@ app.post("/rescore-routes", async (req, res) => {
 
                 log(`Re-scored ${routes.length} routes`);
                 log(`Recommended routes (score > 8): ${routes.filter(r => r.resilienceScore > 8).length}`);
-                
-                log("="*60);
+
+                log("=" * 60);
                 log("=== RE-SCORING COMPLETE ===");
-                log("="*60);
+                log("=" * 60);
 
                 res.json({
                     routes: routes,
                     bestRoute: resilience_scores.best_route_name,
                     analysisComplete: true
                 });
-                
+
             } catch (parseError) {
                 log(`Parse error: ${parseError.message}`, "ERROR");
-                return res.status(500).json({ 
-                    error: "Failed to parse re-scoring results", 
+                return res.status(500).json({
+                    error: "Failed to parse re-scoring results",
                     details: parseError.message
                 });
             }
@@ -686,5 +687,5 @@ app.listen(PORT, () => {
     log("  GET  /route?coordinates=<coords> - Get route");
     log("  POST /analyze-routes - Full route analysis");
     log("  POST /rescore-routes - Priority-based re-scoring");
-    log("="*60);
+    log("=" * 60);
 });

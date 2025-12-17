@@ -23,6 +23,7 @@ from ml_module.analysis.carbon_analysis import CarbonAnalyzer
 from ml_module.analysis.road_analysis import RoadAnalyzer
 from ml_module.analysis.weather_analysis import WeatherAnalyzer
 from ml_module.analysis.segmentation import extract_segments_for_routes
+from ml_module.analysis.road_safety_score import RoadSafetyScorer
 from ml_module.scoring.resilience_calculator import ResilienceCalculator
 from ml_module.utils.logger import get_logger
 
@@ -53,6 +54,7 @@ class RouteAnalysisSystem:
         self.carbon_analyzer = CarbonAnalyzer()
         self.weather_analyzer = WeatherAnalyzer()
         self.road_analyzer = RoadAnalyzer()
+        self.road_safety_scorer = RoadSafetyScorer()
         
         # Initialize scorer
         self.resilience_calculator = ResilienceCalculator()
@@ -133,7 +135,6 @@ class RouteAnalysisSystem:
             for i, route in enumerate(routes):
                 if "route_name" not in route or not route["route_name"]:
                     route["route_name"] = f"Route {i + 1}"
-
             
             # Step 2: Run parallel analyses
             logger.info("\n" + "="*60)
@@ -153,28 +154,39 @@ class RouteAnalysisSystem:
             # Extract segments for all routes (called from main.py as requested)
             logger.info(f"\n→ Extracting segments for {len(routes)} route(s)")
             segments_data = extract_segments_for_routes(routes)
-            # for idx, data in enumerate(segments_data):
-            #     segments = data[1] if data else []
-            #     route_name = data[0] if data else "Unknown"
-            #     logger.info(f"✓ Extracted {len(segments)} segments for {route_name}")
             
-            # Weather analysis
-            logger.info("\n→ WEATHER ANALYSIS")
+            # [Refactored] Consolidated Analysis via RoadSafetyScorer
+            # This replaces separate Weather and Road analysis calls
+            logger.info("\n→ SAFETY, WEATHER & ROAD ANALYSIS")
+            
             weather_results = []
-            for idx, data in enumerate(segments_data):
-                route_name, segments, max_length_m, min_length_m = data
-                weather_result = self.weather_analyzer.analyze(segments)
-                weather_result["route_name"] = route_name
-                weather_results.append(weather_result)
+            road_results = []
+            safety_scores = {}
             
-            # Road analysis - pass pre-extracted segments and weather results
-            logger.info("\n→ ROAD ANALYSIS")
-            road_results = self.road_analyzer.analyze(
-                segments_data,
-                weather_results=weather_results,
-                osmnx_enabled=osmnx_enabled,
-            )
-            road_quality_scores = {r["route_name"]: r["road_quality_score"] for r in road_results}
+            for idx, data in enumerate(segments_data):
+                route_name = data[0]
+                
+                # Perform full analysis
+                analysis_result = self.road_safety_scorer.calculate(
+                    segment_data=data,
+                    osmnx_enabled=osmnx_enabled
+                )
+                
+                # Extract components
+                safety_score = analysis_result["road_safety_score"]
+                w_result = analysis_result["weather_analysis"]
+                r_result = analysis_result["road_analysis"]
+                
+                # Add route name to results as expected by downstream logic
+                w_result["route_name"] = route_name
+                r_result["route_name"] = route_name
+                
+                # Store
+                safety_scores[route_name] = safety_score
+                weather_results.append(w_result)
+                road_results.append(r_result)
+                
+            road_quality_scores = {r["route_name"]: r.get("road_quality_score", 0) for r in road_results}
             
             # Carbon analysis
             logger.info("\n→ CARBON EMISSION ANALYSIS")
@@ -209,7 +221,8 @@ class RouteAnalysisSystem:
                 distance_results=distance_results,
                 carbon_results=carbon_results,
                 road_results=road_results,
-                resilience_results=resilience_results
+                resilience_results=resilience_results,
+                safety_scores=safety_scores
             )
             
             # Format resilience scores for output
@@ -291,7 +304,8 @@ class RouteAnalysisSystem:
                         distance_results: List[Dict[str, Any]],
                         carbon_results: List[Dict[str, Any]],
                         road_results: List[Dict[str, Any]],
-                        resilience_results: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
+                        resilience_results: List[Dict[str, Any]],
+                        safety_scores: Dict[str, float]) -> List[Dict[str, Any]]:
         """
         Combine all analysis results into enriched route dictionaries.
         
@@ -302,6 +316,7 @@ class RouteAnalysisSystem:
             carbon_results: Carbon analysis results
             road_results: Road analysis results
             resilience_results: Resilience calculation results
+            safety_scores: Road safety scores
         
         Returns:
             List of enriched route dictionaries
@@ -324,6 +339,7 @@ class RouteAnalysisSystem:
             carbon_data = carbon_lookup.get(route_name, {})
             road_data = road_lookup.get(route_name, {})
             resilience_data = resilience_lookup.get(route_name, {})
+            safety_score = safety_scores.get(route_name, 0.5)
             
             # Combine into enriched route
             enriched_route = {
@@ -355,6 +371,9 @@ class RouteAnalysisSystem:
                 "avg_weather_risk": road_data.get("avg_weather_risk", 0),
                 "total_rainfall": road_data.get("total_rainfall", 0),
                 "road_type_distribution": road_data.get("road_type_distribution", {}),
+                
+                # Road Safety Score (New)
+                "road_safety_score": safety_score,
                 
                 # Resilience score
                 "overall_resilience_score": resilience_data.get("overall_resilience_score", 0),
