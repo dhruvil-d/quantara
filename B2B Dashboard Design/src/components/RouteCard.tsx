@@ -48,15 +48,14 @@ export function RouteCard({ route, isSelected, onClick, isDarkMode = false }: Ro
   return (
     <button
       onClick={onClick}
-      className={`w-full text-left p-4 rounded-xl border-2 transition-all hover:shadow-md ${
-        isSelected
+      className={`w-full text-left p-4 rounded-xl border-2 transition-all hover:shadow-md ${isSelected
           ? isDarkMode
             ? "border-lime-500 bg-lime-900/20 shadow-md"
             : "border-lime-500 bg-lime-50 shadow-md"
           : isDarkMode
             ? "border-gray-600 bg-gray-700 hover:border-gray-500"
             : "border-gray-200 bg-white hover:border-gray-300"
-      }`}
+        }`}
     >
       {/* Header */}
       <div className="flex items-start justify-between mb-3">
@@ -78,16 +77,15 @@ export function RouteCard({ route, isSelected, onClick, isDarkMode = false }: Ro
           )}`}
         >
           <div className={`text-xs ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>Resilience</div>
-          <div className="font-semibold">{route.resilienceScore}/10</div>
+          <div className="font-semibold">{route.resilienceScore.toFixed(2)}/10</div>
         </div>
       </div>
 
       {/* Metrics Grid */}
       <div className="grid grid-cols-2 gap-3 mb-4">
         <div className="flex items-center gap-2">
-          <div className={`w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0 ${
-            isDarkMode ? 'bg-blue-900/30' : 'bg-blue-50'
-          }`}>
+          <div className={`w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0 ${isDarkMode ? 'bg-blue-900/30' : 'bg-blue-50'
+            }`}>
             <Clock className={`w-4 h-4 ${isDarkMode ? 'text-blue-400' : 'text-blue-600'}`} />
           </div>
           <div>
@@ -97,9 +95,8 @@ export function RouteCard({ route, isSelected, onClick, isDarkMode = false }: Ro
         </div>
 
         <div className="flex items-center gap-2">
-          <div className={`w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0 ${
-            isDarkMode ? 'bg-green-900/30' : 'bg-green-50'
-          }`}>
+          <div className={`w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0 ${isDarkMode ? 'bg-green-900/30' : 'bg-green-50'
+            }`}>
             <DollarSign className={`w-4 h-4 ${isDarkMode ? 'text-green-400' : 'text-green-600'}`} />
           </div>
           <div>
@@ -109,9 +106,8 @@ export function RouteCard({ route, isSelected, onClick, isDarkMode = false }: Ro
         </div>
 
         <div className="flex items-center gap-2">
-          <div className={`w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0 ${
-            isDarkMode ? 'bg-emerald-900/30' : 'bg-emerald-50'
-          }`}>
+          <div className={`w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0 ${isDarkMode ? 'bg-emerald-900/30' : 'bg-emerald-50'
+            }`}>
             <Leaf className={`w-4 h-4 ${isDarkMode ? 'text-emerald-400' : 'text-emerald-600'}`} />
           </div>
           <div>
@@ -121,9 +117,8 @@ export function RouteCard({ route, isSelected, onClick, isDarkMode = false }: Ro
         </div>
 
         <div className="flex items-center gap-2">
-          <div className={`w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0 ${
-            isDarkMode ? 'bg-orange-900/30' : 'bg-orange-50'
-          }`}>
+          <div className={`w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0 ${isDarkMode ? 'bg-orange-900/30' : 'bg-orange-50'
+            }`}>
             <AlertTriangle className={`w-4 h-4 ${isDarkMode ? 'text-orange-400' : 'text-orange-600'}`} />
           </div>
           <div>
@@ -136,9 +131,8 @@ export function RouteCard({ route, isSelected, onClick, isDarkMode = false }: Ro
       </div>
 
       {/* Footer */}
-      <div className={`flex items-center justify-between pt-3 border-t ${
-        isDarkMode ? 'border-gray-600' : 'border-gray-200'
-      }`}>
+      <div className={`flex items-center justify-between pt-3 border-t ${isDarkMode ? 'border-gray-600' : 'border-gray-200'
+        }`}>
         <div className="flex items-center gap-2">
           <div className="w-8 h-8 rounded-full bg-gradient-to-br from-lime-400 to-emerald-500 flex items-center justify-center text-white text-xs">
             {route.courier.avatar}
@@ -146,18 +140,16 @@ export function RouteCard({ route, isSelected, onClick, isDarkMode = false }: Ro
           <span className={isDarkMode ? 'text-gray-300' : 'text-gray-700'}>{route.courier.name}</span>
         </div>
         <div className="flex items-center gap-2">
-          <button className={`w-7 h-7 rounded-full flex items-center justify-center transition-colors ${
-            isDarkMode 
-              ? 'bg-gray-600 hover:bg-gray-500' 
+          <button className={`w-7 h-7 rounded-full flex items-center justify-center transition-colors ${isDarkMode
+              ? 'bg-gray-600 hover:bg-gray-500'
               : 'bg-gray-100 hover:bg-gray-200'
-          }`}>
+            }`}>
             <Phone className={`w-3.5 h-3.5 ${isDarkMode ? 'text-gray-300' : 'text-gray-600'}`} />
           </button>
-          <button className={`w-7 h-7 rounded-full flex items-center justify-center transition-colors ${
-            isDarkMode 
-              ? 'bg-gray-600 hover:bg-gray-500' 
+          <button className={`w-7 h-7 rounded-full flex items-center justify-center transition-colors ${isDarkMode
+              ? 'bg-gray-600 hover:bg-gray-500'
               : 'bg-gray-100 hover:bg-gray-200'
-          }`}>
+            }`}>
             <MessageCircle className={`w-3.5 h-3.5 ${isDarkMode ? 'text-gray-300' : 'text-gray-600'}`} />
           </button>
         </div>

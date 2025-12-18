@@ -433,6 +433,7 @@ app.post("/analyze-routes", async (req, res) => {
                             origin: [sourceLat, sourceLon],
                             destination: [destLat, destLon]
                         },
+                        overview_polyline: route.overview_polyline,
                         analysisData: geminiOutput, // Legacy support
                         geminiOutput: geminiOutput  // New Frontend field
                     };
@@ -658,6 +659,7 @@ app.post("/rescore-routes", async (req, res) => {
                         },
                         isRecommended: resilienceScore > 8,
                         coordinates: cached.coordinates,
+                        overview_polyline: route.overview_polyline,
                         analysisData: geminiOutput, // Legacy support
                         geminiOutput: geminiOutput  // New Frontend field
                     };

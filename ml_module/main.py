@@ -392,6 +392,7 @@ class RouteAnalysisSystem:
                 "duration_s": route.get("duration_s", 0),
                 "steps": route.get("steps", []),
                 "coordinates": route.get("coordinates", []),
+                "overview_polyline": route.get("overview_polyline", ""),
                 
                 # Time analysis
                 "predicted_duration_min": time_data.get("duration_s", 0) / 60,

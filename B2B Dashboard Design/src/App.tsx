@@ -34,6 +34,7 @@ export interface Route {
     origin: [number, number];
     destination: [number, number];
   };
+  overview_polyline?: string;
   geminiOutput?: {
     weather_risk_score: number;
     road_safety_score: number;

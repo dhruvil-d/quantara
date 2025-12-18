@@ -175,11 +175,23 @@ export function MapView({ route, isDarkMode = false }: MapViewProps) {
           setOriginCoords(origin);
           setDestCoords(dest);
 
-          // Only use source and destination - no waypoints
-          const allCoords = [origin, dest];
-          const path = await fetchRoute(allCoords);
+          // Check for overview_polyline passed from backend (Google Maps/ML result)
+          if (route.overview_polyline) {
+            // Decode Google Polyline string -> [[lat, lon], ...]
+            const decodedPath = polyline.decode(route.overview_polyline);
+            // Convert to Leaflet tuple format if needed (polyline.decode returns [lat, lon] which matches Leaflet)
+            const leafletPath = decodedPath.map(p => [p[0], p[1]] as [number, number]);
 
-          setRoutePath(path);
+            console.log("Using provided route polyline, points:", leafletPath.length);
+            setRoutePath(leafletPath);
+          } else {
+            // Fallback: Fetch route from GraphHopper if no polyline provided
+            console.log("No polyline provided, fetching from GraphHopper...");
+            // Only use source and destination - no waypoints
+            const allCoords = [origin, dest];
+            const path = await fetchRoute(allCoords);
+            setRoutePath(path);
+          }
         } else {
           setError("Could not find coordinates for one or both cities.");
         }
@@ -265,8 +277,8 @@ export function MapView({ route, isDarkMode = false }: MapViewProps) {
                     <button
                       onClick={() => setIsGeminiOutputOpen(!isGeminiOutputOpen)}
                       className={`p-1.5 rounded-lg transition-colors ${isDarkMode
-                          ? 'hover:bg-gray-700 text-gray-300'
-                          : 'hover:bg-gray-100 text-gray-600'
+                        ? 'hover:bg-gray-700 text-gray-300'
+                        : 'hover:bg-gray-100 text-gray-600'
                         }`}
                       title="View AI Analysis"
                     >
@@ -331,10 +343,10 @@ export function MapView({ route, isDarkMode = false }: MapViewProps) {
                             Weather Risk
                           </span>
                           <span className={`text-sm font-semibold ${route.geminiOutput.weather_risk_score > 70
-                              ? 'text-red-500'
-                              : route.geminiOutput.weather_risk_score > 40
-                                ? 'text-yellow-500'
-                                : 'text-green-500'
+                            ? 'text-red-500'
+                            : route.geminiOutput.weather_risk_score > 40
+                              ? 'text-yellow-500'
+                              : 'text-green-500'
                             }`}>
                             {route.geminiOutput.weather_risk_score}
                           </span>
@@ -343,10 +355,10 @@ export function MapView({ route, isDarkMode = false }: MapViewProps) {
                           }`}>
                           <div
                             className={`h-full ${route.geminiOutput.weather_risk_score > 70
-                                ? 'bg-red-500'
-                                : route.geminiOutput.weather_risk_score > 40
-                                  ? 'bg-yellow-500'
-                                  : 'bg-green-500'
+                              ? 'bg-red-500'
+                              : route.geminiOutput.weather_risk_score > 40
+                                ? 'bg-yellow-500'
+                                : 'bg-green-500'
                               }`}
                             style={{ width: `${route.geminiOutput.weather_risk_score}%` }}
                           />
@@ -361,10 +373,10 @@ export function MapView({ route, isDarkMode = false }: MapViewProps) {
                             Road Safety
                           </span>
                           <span className={`text-sm font-semibold ${route.geminiOutput.road_safety_score > 70
-                              ? 'text-green-500'
-                              : route.geminiOutput.road_safety_score > 40
-                                ? 'text-yellow-500'
-                                : 'text-red-500'
+                            ? 'text-green-500'
+                            : route.geminiOutput.road_safety_score > 40
+                              ? 'text-yellow-500'
+                              : 'text-red-500'
                             }`}>
                             {route.geminiOutput.road_safety_score}
                           </span>
@@ -373,10 +385,10 @@ export function MapView({ route, isDarkMode = false }: MapViewProps) {
                           }`}>
                           <div
                             className={`h-full ${route.geminiOutput.road_safety_score > 70
-                                ? 'bg-green-500'
-                                : route.geminiOutput.road_safety_score > 40
-                                  ? 'bg-yellow-500'
-                                  : 'bg-red-500'
+                              ? 'bg-green-500'
+                              : route.geminiOutput.road_safety_score > 40
+                                ? 'bg-yellow-500'
+                                : 'bg-red-500'
                               }`}
                             style={{ width: `${route.geminiOutput.road_safety_score}%` }}
                           />
@@ -391,10 +403,10 @@ export function MapView({ route, isDarkMode = false }: MapViewProps) {
                             Carbon Efficiency
                           </span>
                           <span className={`text-sm font-semibold ${(route.geminiOutput.carbon_score || 0) > 70
-                              ? 'text-green-500'
-                              : (route.geminiOutput.carbon_score || 0) > 40
-                                ? 'text-yellow-500'
-                                : 'text-red-500'
+                            ? 'text-green-500'
+                            : (route.geminiOutput.carbon_score || 0) > 40
+                              ? 'text-yellow-500'
+                              : 'text-red-500'
                             }`}>
                             {route.geminiOutput.carbon_score || 0}
                           </span>
@@ -403,10 +415,10 @@ export function MapView({ route, isDarkMode = false }: MapViewProps) {
                           }`}>
                           <div
                             className={`h-full ${(route.geminiOutput.carbon_score || 0) > 70
-                                ? 'bg-green-500'
-                                : (route.geminiOutput.carbon_score || 0) > 40
-                                  ? 'bg-yellow-500'
-                                  : 'bg-red-500'
+                              ? 'bg-green-500'
+                              : (route.geminiOutput.carbon_score || 0) > 40
+                                ? 'bg-yellow-500'
+                                : 'bg-red-500'
                               }`}
                             style={{ width: `${route.geminiOutput.carbon_score || 0}%` }}
                           />
@@ -421,10 +433,10 @@ export function MapView({ route, isDarkMode = false }: MapViewProps) {
                             Overall Resilience
                           </span>
                           <span className={`text-sm font-bold ${route.geminiOutput.overall_resilience_score > 70
-                              ? 'text-lime-500'
-                              : route.geminiOutput.overall_resilience_score > 40
-                                ? 'text-yellow-500'
-                                : 'text-red-500'
+                            ? 'text-lime-500'
+                            : route.geminiOutput.overall_resilience_score > 40
+                              ? 'text-yellow-500'
+                              : 'text-red-500'
                             }`}>
                             {route.geminiOutput.overall_resilience_score}
                           </span>
@@ -433,10 +445,10 @@ export function MapView({ route, isDarkMode = false }: MapViewProps) {
                           }`}>
                           <div
                             className={`h-full ${route.geminiOutput.overall_resilience_score > 70
-                                ? 'bg-lime-500'
-                                : route.geminiOutput.overall_resilience_score > 40
-                                  ? 'bg-yellow-500'
-                                  : 'bg-red-500'
+                              ? 'bg-lime-500'
+                              : route.geminiOutput.overall_resilience_score > 40
+                                ? 'bg-yellow-500'
+                                : 'bg-red-500'
                               }`}
                             style={{ width: `${route.geminiOutput.overall_resilience_score}%` }}
                           />
