@@ -132,11 +132,44 @@ class GoogleMapsClient:
             "end_address": leg.get("end_address", ""),
             "steps": steps,
             "overview_polyline": overview_polyline,
+            "coordinates": self._decode_polyline(overview_polyline),
             "bounds": route.get("bounds", {}),
             "summary": route.get("summary", ""),
             "warnings": route.get("warnings", []),
             "waypoint_order": route.get("waypoint_order", [])
         }
+
+    def _decode_polyline(self, polyline_str: str) -> List[List[float]]:
+        """
+        Decodes a Google Maps encoded polyline string into a list of [lat, lng] pairs.
+        """
+        index, lat, lng = 0, 0, 0
+        coordinates = []
+        changes = {'latitude': 0, 'longitude': 0}
+
+        while index < len(polyline_str):
+            for unit in ['latitude', 'longitude']:
+                shift, result = 0, 0
+
+                while True:
+                    byte = ord(polyline_str[index]) - 63
+                    index += 1
+                    result |= (byte & 0x1f) << shift
+                    shift += 5
+                    if not byte >= 0x20:
+                        break
+
+                if (result & 1):
+                    changes[unit] = ~(result >> 1)
+                else:
+                    changes[unit] = (result >> 1)
+
+            lat += changes['latitude']
+            lng += changes['longitude']
+
+            coordinates.append([lat / 100000.0, lng / 100000.0])
+
+        return coordinates
     
     def get_place_details(self, place_id: str) -> Optional[Dict[str, Any]]:
         """

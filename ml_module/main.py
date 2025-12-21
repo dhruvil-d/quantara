@@ -278,6 +278,21 @@ class RouteAnalysisSystem:
             logger.info(f"✓ Reason: {formatted_scores['reason_for_selection']}")
             logger.info("="*80)
             
+            # Save resilient path coordinates
+            try:
+                best_route_name = formatted_scores['best_route_name']
+                best_route_data = next((r for r in enriched_routes if r["route_name"] == best_route_name), None)
+                
+                if best_route_data and "coordinates" in best_route_data:
+                    output_path = Path(__file__).parent / "resilient_path.json"
+                    with open(output_path, "w") as f:
+                        json.dump(best_route_data["coordinates"], f)
+                    logger.info(f"✓ Saved resilient path coordinates to {output_path}")
+                else:
+                    logger.warning(f"Could not find coordinates for best route: {best_route_name}")
+            except Exception as e:
+                logger.warning(f"Failed to save resilient path coordinates: {str(e)}")
+
             return result
             
         except Exception as e:
