@@ -8,7 +8,7 @@ import { fileURLToPath } from "url";
 import fs from "fs";
 import mongoose from "mongoose";
 import RecommendedRoute from "./models/RecommendedRoute.js";
-//import CoveredPoint from "./models/CoveredPoints.js";
+import CoveredPoint from "./models/CoveredPoints.js";
 //import { simulateRouteMovement } from "./utils/simulation.js";
 import simulateRoute from "../ml_module/utils/simulation.js";
 import polyline from "@mapbox/polyline";
@@ -34,8 +34,8 @@ if (fs.existsSync(rootEnvPath)) {
 
 //MongoDB
 mongoose.connect(process.env.MONGO_URI)
-.then(() => console.log("MongoDB connected"))
-.catch(err => console.error("MongoDB connection error:", err));
+    .then(() => console.log("MongoDB connected"))
+    .catch(err => console.error("MongoDB connection error:", err));
 
 
 const app = express();
@@ -85,6 +85,11 @@ app.use((req, res, next) => {
 
     next();
 });
+
+// -----------------------------
+// 🔄 Simulation Loop (using imported simulateRoute from ml_module)
+// -----------------------------
+// simulateRoute is imported from "../ml_module/utils/simulation.js"
 
 // -----------------------------
 // Root endpoint
@@ -412,8 +417,8 @@ app.post("/analyze-routes", async (req, res) => {
                     // Gemini Output mapping (passed from Python or fallbacks)
                     const geminiAnalysis = route.gemini_analysis || {};
                     const intermediateCities = Array.isArray(geminiAnalysis.intermediate_cities)
-    ? geminiAnalysis.intermediate_cities.slice(0, 2)
-    : [];
+                        ? geminiAnalysis.intermediate_cities.slice(0, 2)
+                        : [];
 
                     const geminiOutput = {
                         weather_risk_score: Math.round(geminiAnalysis.weather_risk_score || weatherRisk * 100),
@@ -457,41 +462,51 @@ app.post("/analyze-routes", async (req, res) => {
                         intermediate_cities: intermediateCities
                     };
                 }) || [];
-               
-                
+
+
                 log(`Transformed ${routes.length} routes for frontend`);
                 log(`Recommended routes (score > 8): ${routes.filter(r => r.resilienceScore > 8).length}`);
-// ===============================
-// SAVE BEST ROUTE + START SIMULATION
-// ===============================
-console.log("🔥 SAVING BEST ROUTE TO DB");
+                // ===============================
+                // SAVE BEST ROUTE + START SIMULATION
+                // ===============================
+                console.log("🔥 SAVING BEST ROUTE TO DB");
 
-const bestRoute = routes.find(r => r.isRecommended);
+                const bestRoute = routes.find(r => r.isRecommended);
 
-if (!bestRoute) {
-    console.warn("⚠️ No recommended route found");
-} else {
+                if (!bestRoute) {
+                    console.warn("⚠️ No recommended route found");
+                } else {
 
-    const decodedCoordinates = polyline
-        .decode(bestRoute.overview_polyline)
-        .map(([lat, lng]) => ({ lat, lng }));
+                    const decodedCoordinates = polyline
+                        .decode(bestRoute.overview_polyline)
+                        .map(([lat, lng]) => ({ lat, lng }));
 
-    const savedRoute = await RecommendedRoute.create({
-        ml_route_id: bestRoute.id,
-        route_name: bestRoute.courier.name,
+                    const savedRoute = await RecommendedRoute.create({
+                        ml_route_id: bestRoute.id,
+                        route_name: bestRoute.courier.name,
 
-        source,
-        destination,
+                        source,
+                        destination,
 
-        overview_polyline: bestRoute.overview_polyline,
-        decoded_coordinates: decodedCoordinates,
+                        overview_polyline: bestRoute.overview_polyline,
+                        decoded_coordinates: decodedCoordinates,
 
-        intermediate_cities: bestRoute.intermediate_cities
-    });
+                        intermediate_cities: bestRoute.intermediate_cities
+                    });
 
-    console.log("🚀 STARTING SIMULATION");
-    simulateRoute(savedRoute).catch(console.error);
-}
+                    // Use the unique MongoDB _id as the route identifier for simulation
+                    // This ensures points don't mix across different sessions
+                    const routeForSimulation = {
+                        ...savedRoute.toObject(),
+                        ml_route_id: savedRoute._id.toString()  // Unique per session
+                    };
+
+                    console.log("🚀 STARTING SIMULATION with unique ID:", routeForSimulation.ml_route_id);
+                    simulateRoute(routeForSimulation).catch(console.error);
+
+                    // Add the unique database ID to the best route for frontend use
+                    bestRoute.dbRouteId = savedRoute._id.toString();
+                }
 
                 // Cache routes for re-scoring
                 const cacheKey = `${source}_${destination}`;
@@ -638,37 +653,37 @@ app.post("/rescore-routes", async (req, res) => {
                     log(`Re-scoring error: ${result.error}`, "ERROR");
                     return res.status(500).json({ error: result.error });
                 }
-//const bestRouteName = result.best_route;
+                //const bestRouteName = result.best_route;
 
-// ⚠️ IMPORTANT: use ML routes, not frontend routes
-console.log("🔥 SAVING BEST ROUTE TO DB");
+                // ⚠️ IMPORTANT: use ML routes, not frontend routes
+                console.log("🔥 SAVING BEST ROUTE TO DB");
 
-const bestRoute = routes.find(r => r.isRecommended);
+                const bestRoute = routes.find(r => r.isRecommended);
 
-if (!bestRoute) {
-    console.warn("⚠️ No recommended route found");
-} else {
+                if (!bestRoute) {
+                    console.warn("⚠️ No recommended route found");
+                } else {
 
-    const decodedCoordinates = polyline
-        .decode(bestRoute.overview_polyline)
-        .map(([lat, lng]) => ({ lat, lng }));
+                    const decodedCoordinates = polyline
+                        .decode(bestRoute.overview_polyline)
+                        .map(([lat, lng]) => ({ lat, lng }));
 
-    const savedRoute = await RecommendedRoute.create({
-        ml_route_id: bestRoute.id,
-        route_name: bestRoute.courier.name,
+                    const savedRoute = await RecommendedRoute.create({
+                        ml_route_id: bestRoute.id,
+                        route_name: bestRoute.courier.name,
 
-        source,
-        destination,
+                        source,
+                        destination,
 
-        overview_polyline: bestRoute.overview_polyline,
-        decoded_coordinates: decodedCoordinates,
+                        overview_polyline: bestRoute.overview_polyline,
+                        decoded_coordinates: decodedCoordinates,
 
-        intermediate_cities: bestRoute.intermediate_cities
-    });
+                        intermediate_cities: bestRoute.intermediate_cities
+                    });
 
-    console.log("🚀 STARTING SIMULATION");
-    simulateRoute(savedRoute).catch(console.error);
-}
+                    console.log("🚀 STARTING SIMULATION");
+                    simulateRoute(savedRoute).catch(console.error);
+                }
 
 
                 const resilience_scores = result.resilience_scores || {};
@@ -711,9 +726,9 @@ if (!bestRoute) {
                     // Gemini Output mapping (passed from Python or fallbacks)
                     const geminiAnalysis = route.gemini_analysis || {};
                     const intermediateCities =
-    Array.isArray(geminiAnalysis.intermediate_cities)
-        ? geminiAnalysis.intermediate_cities.slice(0, 2) // limit to 2
-        : [];
+                        Array.isArray(geminiAnalysis.intermediate_cities)
+                            ? geminiAnalysis.intermediate_cities.slice(0, 2) // limit to 2
+                            : [];
                     const geminiOutput = {
                         weather_risk_score: Math.round(geminiAnalysis.weather_risk_score || weatherRisk * 100),
                         road_safety_score: Math.round(geminiAnalysis.road_safety_score || (route.road_safety_score || 0.5) * 100),
@@ -780,6 +795,197 @@ if (!bestRoute) {
     } catch (err) {
         log(`Re-scoring error: ${err.message}`, "ERROR");
         return res.status(500).json({ error: "Re-scoring failed", details: err.message });
+    }
+});
+
+// -----------------------------
+// 📍 Record Simulation Point
+// -----------------------------
+app.post("/record-point", async (req, res) => {
+    const { routeId, lat, lon, sequence, isIntermediate, source, destination, routeName } = req.body;
+
+    // log(`Recording point: ${lat}, ${lon} (Seq: ${sequence})`);
+
+    try {
+        await CoveredPoint.create({
+            mlRouteId: routeId,
+            routeName: routeName,
+            source,
+            destination,
+            lat,
+            lon,
+            isIntermediate,
+            coveredAt: new Date()
+        });
+
+        res.json({ success: true });
+    } catch (err) {
+        log(`Error recording point: ${err.message}`, "ERROR");
+        res.status(500).json({ error: "Failed to record point" });
+    }
+});
+
+app.get("/covered-points/:routeId", async (req, res) => {
+    try {
+        const { routeId } = req.params;
+        // Sort by sequence to ensure correct path ordering
+        const points = await CoveredPoint.find({ mlRouteId: routeId }).sort({ sequence: 1 });
+
+        // Return array of [lat, lon]
+        const coordinates = points.map(p => [p.lat, p.lon]);
+        res.json(coordinates);
+    } catch (err) {
+        log(`Error fetching covered points: ${err.message}`, "ERROR");
+        res.status(500).json({ error: "Failed to fetch points" });
+    }
+});
+
+// -----------------------------
+// 🔀 Reroute Calculation
+// -----------------------------
+app.post("/reroute", async (req, res) => {
+    log("=" * 60);
+    log("=== REROUTE REQUEST ===");
+    log("=" * 60);
+
+    const { currentLocation, destination, excludeRouteId, excludeRouteName, sourceName } = req.body;
+
+    log(`Current Location: ${JSON.stringify(currentLocation)}`);
+    log(`Destination: ${destination}`);
+    log(`Exclude Route ID: ${excludeRouteId}`);
+    log(`Exclude Route Name: ${excludeRouteName}`);
+    log(`Source Name (for reroute): ${sourceName}`);
+
+    if (!currentLocation || !destination) {
+        return res.status(400).json({ error: "Current location and destination required" });
+    }
+
+    try {
+        // Step 1: Geocode Destination (Source is already lat/lon)
+        const destGeo = await fetch(`https://photon.komoot.io/api/?q=${encodeURIComponent(destination)}&limit=1`);
+        const destData = await destGeo.json();
+
+        if (!destData.features || destData.features.length === 0) {
+            return res.status(400).json({ error: `Could not geocode destination: ${destination}` });
+        }
+
+        const [destLon, destLat] = destData.features[0].geometry.coordinates;
+        log(`✓ Destination: ${destination} -> (${destLat}, ${destLon})`);
+
+        // Step 2: Call ML Module for New Routes
+        // We act "as if" the source is the current location
+        // Default priorities for reroute (Balance)
+        const userPriorities = {
+            time: 0.3,
+            distance: 0.2,
+            carbon_emission: 0.2,
+            road_quality: 0.3
+        };
+
+        const pythonScript = path.resolve(__dirname, "..", "ml_module", "run_analysis.py");
+        log(`Python script: ${pythonScript}`);
+
+        const inputData = JSON.stringify({
+            source_lat: currentLocation.lat,
+            source_lon: currentLocation.lon,
+            dest_lat: destLat,
+            dest_lon: destLon,
+            source_name: sourceName || "Current Location",
+            dest_name: destination,
+            priorities: userPriorities
+        });
+
+        const pythonProcess = spawn(`python "${pythonScript}"`, [], {
+            cwd: path.join(__dirname, ".."),
+            shell: true
+        });
+
+        let stdout = "";
+        let stderr = "";
+
+        pythonProcess.stdin.write(inputData);
+        pythonProcess.stdin.end();
+
+        pythonProcess.stdout.on("data", (data) => { stdout += data.toString(); });
+        pythonProcess.stderr.on("data", (data) => { stderr += data.toString(); });
+
+        pythonProcess.on("close", (code) => {
+            if (code !== 0) {
+                log(`Reroute Python error: ${stderr}`, "ERROR");
+                return res.status(500).json({ error: "Reroute analysis failed" });
+            }
+
+            try {
+                // Determine Start of JSON
+                const lines = stdout.trim().split("\n");
+                let jsonLine = "";
+                for (let i = lines.length - 1; i >= 0; i--) {
+                    if (lines[i].trim().startsWith("{")) {
+                        jsonLine = lines.slice(i).join("\n");
+                        break;
+                    }
+                }
+
+                if (!jsonLine) throw new Error("No JSON in Python output");
+
+                const result = JSON.parse(jsonLine);
+                const scoredRoutes = result.resilience_scores?.routes || [];
+
+                // Transform Routes
+                const routes = result.routes?.map((route, index) => {
+                    // Similar definition as /analyze-routes, simplified for brevity
+                    const routeName = route.route_name || `Alt Route ${index + 1}`;
+                    const scoreData = scoredRoutes.find(r => r.route_name === routeName) || {};
+
+                    const resilienceScore = (route.overall_resilience_score || scoreData.overall_resilience_score || 0) / 10;
+
+                    return {
+                        id: `reroute_${index + 1}`, // Distinct IDs
+                        origin: "Current Location",
+                        destination: destination,
+                        resilienceScore: resilienceScore,
+                        status: resilienceScore > 8 ? "Recommended" : "Valid",
+                        time: `${Math.round(route.predicted_duration_min || 0)} mins`,
+                        cost: `₹${Math.round((route.distance_m / 1000) * 15).toLocaleString()}`,
+                        carbonEmission: `${Math.round(route.total_carbon_kg || 0)} kg CO₂`,
+                        disruptionRisk: (route.avg_weather_risk || 0) > 0.5 ? "Medium" : "Low",
+                        distance: `${Math.round(route.distance_m / 1000)} km`,
+                        courier: {
+                            name: route.gemini_analysis?.route_name || routeName,
+                            avatar: "AR"
+                        },
+                        overview_polyline: route.overview_polyline,
+                        coordinates: {
+                            origin: [currentLocation.lat, currentLocation.lon],
+                            destination: [destLat, destLon]
+                        },
+                        intermediate_cities: route.gemini_analysis?.intermediate_cities || []
+                    };
+                }) || [];
+
+                // Exclude the ID if possible (though new IDs are generated, we can filter by geometry similarity if needed later)
+                // For now, return all since "reroute_X" IDs are simpler.
+
+                // Filter out the excluded route by name if provided
+                const filteredRoutes = routes.filter(r => {
+                    if (!excludeRouteName) return true;
+                    // Check similarity (simple exact match or contains)
+                    return r.courier.name !== excludeRouteName;
+                });
+
+                log(`Returning ${filteredRoutes.length} routes (after exclusion)`);
+
+                res.json({ routes: filteredRoutes });
+
+            } catch (e) {
+                log(`Reroute parse error: ${e.message}`, "ERROR");
+                res.status(500).json({ error: "Failed to parse reroute results" });
+            }
+        });
+
+    } catch (err) {
+        log(`Reroute internal error: ${err.message}`, "ERROR");
+        res.status(500).json({ error: "Internal server error during reroute" });
     }
 });
 

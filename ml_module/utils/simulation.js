@@ -10,17 +10,21 @@ async function simulateRoute(routeDoc) {
         return;
     }
 
-    for (const point of routeDoc.decoded_coordinates) {
+    // Points are NOT cleared - we want to keep them for traversed path visualization
 
-        const isIntermediate = routeDoc.intermediate_cities.some(city =>
+    let sequence = 0;
+    for (const point of routeDoc.decoded_coordinates) {
+        sequence++;
+
+        const isIntermediate = routeDoc.intermediate_cities?.some(city =>
             Math.abs(city.lat - point.lat) < 0.05 &&
             Math.abs(city.lon - point.lng) < 0.05
-        );
+        ) || false;
 
-        console.log("💾 SAVING COVERED POINT", point.lat, point.lng);
+        console.log("💾 SAVING COVERED POINT", point.lat, point.lng, `(Seq: ${sequence})`);
 
         await CoveredPoint.create({
-            routeId: routeDoc.ml_route_id,
+            mlRouteId: routeDoc.ml_route_id,  // Fixed: use mlRouteId for consistency
             routeName: routeDoc.route_name,
 
             source: routeDoc.source,
@@ -29,6 +33,7 @@ async function simulateRoute(routeDoc) {
             lat: point.lat,
             lon: point.lng,
 
+            sequence: sequence,  // Added: sequence for correct ordering
             isIntermediate
         });
 

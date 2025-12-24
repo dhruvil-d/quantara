@@ -1,6 +1,6 @@
 import { Route } from "../App";
 import * as React from "react";
-import { MapContainer, TileLayer, Marker, Popup, Polyline, useMap } from "react-leaflet";
+import { MapContainer, TileLayer, Marker, Popup, Polyline, useMap, CircleMarker } from "react-leaflet";
 import L from "leaflet";
 import axios from "axios";
 import polyline from "@mapbox/polyline"; // <-- Decode GraphHopper polyline
@@ -16,6 +16,7 @@ import {
   ChevronDown,
   ChevronUp,
   Info,
+  TriangleAlert,
 } from "lucide-react";
 
 // Fix leaflet icons
@@ -33,6 +34,10 @@ L.Marker.prototype.options.icon = DefaultIcon;
 interface MapViewProps {
   route: Route;
   isDarkMode?: boolean;
+  onSimulate?: () => void;
+  onReroute?: (location: { lat: number, lon: number }) => void;
+  onRouteUpdate?: (newRoute: Route) => void;
+  traversedPath?: [number, number][];
 }
 
 // Automatically re-center and fix map container issues
@@ -54,17 +59,206 @@ function MapController({ bounds }: { bounds: L.LatLngBoundsExpression | null }) 
   return null;
 }
 
-export function MapView({ route, isDarkMode = false }: MapViewProps) {
+// Custom icon for intermediate cities
+const IntermediateIcon = L.icon({
+  iconUrl: "/assets/intermediate-pin.png",
+  iconSize: [30, 30],
+  iconAnchor: [15, 38], // Lifted 8px to clear the route line completely
+  popupAnchor: [0, -38]
+});
+
+export function MapView({ route, isDarkMode = false, onSimulate, onReroute, onRouteUpdate, traversedPath }: MapViewProps) {
   const [originCoords, setOriginCoords] = React.useState<[number, number] | null>(null);
   const [destCoords, setDestCoords] = React.useState<[number, number] | null>(null);
+  const [intermediateCoords, setIntermediateCoords] = React.useState<[number, number][]>([]);
   const [routePath, setRoutePath] = React.useState<[number, number][]>([]);
   const [isLoading, setIsLoading] = React.useState(false);
   const [error, setError] = React.useState<string | null>(null);
   const [isGeminiOutputOpen, setIsGeminiOutputOpen] = React.useState(false);
+  const [coveredIndex, setCoveredIndex] = React.useState<number>(0);
+  const [isSimulating, setIsSimulating] = React.useState(false);
+  const [instabilityPopupPos, setInstabilityPopupPos] = React.useState<[number, number] | null>(null);
+  const popupMarkerRef = React.useRef<L.Marker>(null);
 
-  // ------------------------------
-  // 1) Geocode City Name → Lat, Lon
-  // ------------------------------
+  // In-Popup Reroute States
+  const [rerouters, setRerouters] = React.useState<Route[]>([]);
+  const [rerouteSource, setRerouteSource] = React.useState<string>("");
+  const [isLoadingReroute, setIsLoadingReroute] = React.useState(false);
+
+  React.useEffect(() => {
+    if (instabilityPopupPos && popupMarkerRef.current) {
+      setTimeout(() => {
+        popupMarkerRef.current?.openPopup();
+      }, 100);
+    }
+  }, [instabilityPopupPos]);
+
+  React.useEffect(() => {
+    setInstabilityPopupPos(null);
+    setRerouters([]);
+    setRerouteSource("");
+  }, [route]);
+
+  const formatTime = (timeStr: string) => {
+    // Attempt to parse "1064 mins" or similar
+    const match = timeStr.match(/(\d+)\s*mins?/);
+    if (match) {
+      const mins = parseInt(match[1]);
+      const hrs = Math.floor(mins / 60);
+      const m = mins % 60;
+      if (hrs > 0) return `${hrs} hrs ${m} mins`;
+      return `${m} mins`;
+    }
+    return timeStr;
+  };
+
+  const handleFetchReroutes = async () => {
+    if (!instabilityPopupPos) return;
+
+    setIsLoadingReroute(true);
+
+    // Determine the name of the 2nd intermediate city triggers reroute
+    // We can guess it from the intermediate_cities array based on index logic or just take the 2nd one
+    // Logic from getSimulationIndices implies we stop at 2nd city
+    const interCities = (route as any).intermediate_cities || [];
+    const sourceName = interCities.length >= 2 ? interCities[1].name : "Current Location";
+    setRerouteSource(sourceName);
+
+    try {
+      const response = await axios.post("http://localhost:5000/reroute", {
+        currentLocation: { lat: instabilityPopupPos[0], lon: instabilityPopupPos[1] },
+        destination: route.destination,
+        excludeRouteId: route.id,
+        excludeRouteName: route.courier.name,
+        sourceName: sourceName
+      });
+
+      if (response.data.routes) {
+        // Sort reroutes by resilience score (descending)
+        const sortedReroutes = response.data.routes.sort((a: Route, b: Route) => b.resilienceScore - a.resilienceScore);
+        setRerouters(sortedReroutes);
+      }
+    } catch (e) {
+      console.error("Reroute fetch failed", e);
+    } finally {
+      setIsLoadingReroute(false);
+    }
+  };
+
+  const handleConfirmReroute = (newRoute: Route) => {
+    if (onRouteUpdate) {
+      onRouteUpdate(newRoute);
+    }
+  };
+
+  // Removed old handleRerouteClick to avoid confusion, logic moved to handleFetchReroutes
+
+  // Helper to samples indices from a segment range
+  const sampleIndices = (startIdx: number, endIdx: number, count: number) => {
+    const length = endIdx - startIdx;
+    if (length <= 0) return [];
+    if (length <= count) return Array.from({ length }, (_, i) => startIdx + i + 1); // Return all points if short
+
+    const step = Math.floor(length / count);
+    const sampled = [];
+    for (let i = 1; i <= count; i++) {
+      sampled.push(startIdx + Math.min(i * step, length));
+    }
+    return sampled;
+  };
+
+  const getSimulationIndices = (fullPath: [number, number][], intermediateCities: any[]) => {
+    if (intermediateCities.length < 2) return [];
+
+    const city1 = intermediateCities[0];
+    const city2 = intermediateCities[1];
+
+    // Helper to find nearest index on path
+    const findNearestIndex = (targetLat: number, targetLon: number) => {
+      let minD = Infinity;
+      let bestIdx = -1;
+
+      fullPath.forEach((p, i) => {
+        const d = Math.pow(p[0] - targetLat, 2) + Math.pow(p[1] - targetLon, 2);
+        if (d < minD) {
+          minD = d;
+          bestIdx = i;
+        }
+      });
+      return bestIdx;
+    };
+
+    const idx1 = findNearestIndex(city1.lat, city1.lon);
+    const idx2 = findNearestIndex(city2.lat, city2.lon);
+
+    if (idx1 === -1 || idx2 === -1) return [];
+
+    // Segment 0: Start(0) -> City1(idx1)
+    const indices1 = sampleIndices(0, idx1, 5);
+
+    // Segment 1: City1(idx1) -> City2(idx2)
+    const indices2 = sampleIndices(idx1, idx2, 5);
+
+    // Construct sequence of INDICES
+    // Ensure we start roughly at 0, but user wants to simulate "movement"
+    // So steps: [sample1...sample5, idx1, sample6...sample10, idx2]
+    return [...indices1, idx1, ...indices2, idx2];
+  };
+
+  const handleSimulate = async () => {
+    if (!onSimulate) return;
+
+    setIsSimulating(true);
+    setCoveredIndex(0); // Reset to start
+
+    const simulationIndices = getSimulationIndices(routePath, (route as any).intermediate_cities || []);
+
+    if (simulationIndices.length === 0) {
+      setIsSimulating(false);
+      return;
+    }
+
+    // Start loop
+    const stopIdx = simulationIndices[simulationIndices.length - 1];
+
+    for (let i = 0; i < simulationIndices.length; i++) {
+      const idx = simulationIndices[i];
+      const point = routePath[idx]; // Get actual coord from path
+
+      // Update UI: Advance the cut-point
+      setCoveredIndex(idx);
+
+      // Record to Backend
+      if (point) {
+        try {
+          await axios.post('http://localhost:5000/record-point', {
+            routeId: route.id,
+            routeName: route.courier.name,
+            lat: point[0],
+            lon: point[1],
+            sequence: i + 1,
+            isIntermediate: false, // You might want to flag if idx === idx1 or idx2
+            source: route.origin,
+            destination: route.destination
+          });
+        } catch (err) {
+          // Silent fail for simulation recording
+        }
+      }
+
+      // Check if we reached the 2nd intermediate city
+      if (idx === stopIdx) {
+        setIsSimulating(false);
+        setInstabilityPopupPos(point);
+        return; // Stop simulation here
+      }
+
+      // Delay 2 seconds
+      await new Promise(resolve => setTimeout(resolve, 2000));
+    }
+
+    setIsSimulating(false);
+  };
   const geocodeCity = async (city: string): Promise<[number, number] | null> => {
     try {
       const response = await axios.get(
@@ -171,26 +365,110 @@ export function MapView({ route, isDarkMode = false }: MapViewProps) {
           dest = await geocodeCity(route.destination);
         }
 
+        // Geocode intermediate waypoints
+        // 1. Try to use coordinates from backend model if available
+        if ((route as any).intermediate_cities && (route as any).intermediate_cities.length > 0) {
+          const coords = (route as any).intermediate_cities.map((city: any) => [city.lat, city.lon] as [number, number]);
+          setIntermediateCoords(coords);
+        } else {
+          // 2. Fallback: Geocode from 'waypoints' string array
+          const waypoints = route.waypoints || [];
+          const waypointCoords: [number, number][] = [];
+
+          // Parallel geocoding for waypoints
+          if (waypoints.length > 0) {
+            const results = await Promise.all(waypoints.map(city => geocodeCity(city)));
+            results.forEach(res => {
+              if (res) waypointCoords.push(res);
+            });
+            setIntermediateCoords(waypointCoords);
+          } else {
+            setIntermediateCoords([]);
+          }
+        }
+
         if (origin && dest) {
           setOriginCoords(origin);
           setDestCoords(dest);
+
+          let path: [number, number][] = [];
 
           // Check for overview_polyline passed from backend (Google Maps/ML result)
           if (route.overview_polyline) {
             // Decode Google Polyline string -> [[lat, lon], ...]
             const decodedPath = polyline.decode(route.overview_polyline);
             // Convert to Leaflet tuple format if needed (polyline.decode returns [lat, lon] which matches Leaflet)
-            const leafletPath = decodedPath.map(p => [p[0], p[1]] as [number, number]);
-
-            console.log("Using provided route polyline, points:", leafletPath.length);
-            setRoutePath(leafletPath);
+            const decoded = polyline.decode(route.overview_polyline);
+            path = decoded.map((points) => {
+              const [lat, lon] = points;
+              return [lat, lon] as [number, number];
+            });
+            console.log("Using provided route polyline, points:", path.length);
+            setRoutePath(path);
           } else {
             // Fallback: Fetch route from GraphHopper if no polyline provided
             console.log("No polyline provided, fetching from GraphHopper...");
-            // Only use source and destination - no waypoints
-            const allCoords = [origin, dest];
-            const path = await fetchRoute(allCoords);
-            setRoutePath(path);
+            try {
+              path = await fetchRoute([origin, dest]); // Assuming fetchRoute returns path
+              setRoutePath(path);
+            } catch (e) {
+              console.error(e);
+            }
+          }
+
+          // Helper to find nearest point on path
+          const findNearestPoint = (target: [number, number], pathPoints: [number, number][]) => {
+            if (pathPoints.length === 0) return target;
+            let minDist = Infinity;
+            let nearest = target;
+
+            for (const point of pathPoints) {
+              const dist = Math.sqrt(Math.pow(point[0] - target[0], 2) + Math.pow(point[1] - target[1], 2));
+              if (dist < minDist) {
+                minDist = dist;
+                nearest = point;
+              }
+            }
+            return nearest;
+          };
+
+          // Geocode intermediate waypoints OR use model data
+          console.log("Intermediate cities data:", (route as any).intermediate_cities);
+          if ((route as any).intermediate_cities && (route as any).intermediate_cities.length > 0) {
+            const coords = (route as any).intermediate_cities.map((city: any) => {
+              const rawLat = city.lat;
+              const rawLon = city.lon;
+              console.log("Processing intermediate city:", city.name, rawLat, rawLon);
+              // Snap to path if available
+              if (path.length > 0) {
+                return findNearestPoint([rawLat, rawLon], path);
+              }
+              return [rawLat, rawLon] as [number, number];
+            });
+            console.log("Setting intermediateCoords:", coords);
+            setIntermediateCoords(coords);
+          } else {
+            // Fallback: Geocode from 'waypoints' string array
+            const waypoints = route.waypoints || [];
+            const waypointCoords: [number, number][] = [];
+
+            // Parallel geocoding for waypoints
+            if (waypoints.length > 0) {
+              const results = await Promise.all(waypoints.map(city => geocodeCity(city)));
+              results.forEach(res => {
+                if (res) {
+                  // Also snap geocoded points if path exists
+                  if (path.length > 0) {
+                    waypointCoords.push(findNearestPoint(res, path));
+                  } else {
+                    waypointCoords.push(res);
+                  }
+                }
+              });
+              setIntermediateCoords(waypointCoords);
+            } else {
+              setIntermediateCoords([]);
+            }
           }
         } else {
           setError("Could not find coordinates for one or both cities.");
@@ -255,9 +533,144 @@ export function MapView({ route, isDarkMode = false }: MapViewProps) {
               </Marker>
             )}
 
-            {routePath.length > 0 && (
-              <Polyline positions={routePath} color="#65a30d" weight={4} opacity={0.9} />
+            {/* Layered Blue Path for "Light & Dark" Effect */}
+            {coveredIndex > 0 && routePath.length > 0 && (
+              <>
+                {/* Outer Glow (Light Blue) */}
+                <Polyline
+                  positions={routePath.slice(0, coveredIndex + 1)}
+                  color="#60a5fa"
+                  weight={8}
+                  opacity={0.6}
+                />
+                {/* Inner Core (Dark Blue) */}
+                <Polyline
+                  positions={routePath.slice(0, coveredIndex + 1)}
+                  color="#1e3a8a"
+                  weight={4}
+                  opacity={1.0}
+                />
+              </>
             )}
+
+            {/* Green Remaining Path (Sliced from current index onwards) */}
+            {routePath.length > 0 && (
+              <Polyline
+                positions={routePath.slice(coveredIndex)}
+                color="#65a30d"
+                weight={6}
+                opacity={0.9}
+              />
+            )}
+
+            {/* Traversed Path (History) - Dark Blue */}
+            {traversedPath && traversedPath.length > 0 && (
+              <Polyline
+                positions={traversedPath}
+                color="#1e3a8a"
+                weight={4}
+                opacity={1.0}
+              />
+            )}
+
+            {/* Instability Popup Anchor */}
+            {instabilityPopupPos && (
+              <Marker position={instabilityPopupPos} ref={popupMarkerRef}>
+                <Popup
+                  className="instability-popup"
+                  closeButton={false}
+                  autoPan={true}
+                  minWidth={350}
+                  maxWidth={350}
+                  autoClose={false}
+                  closeOnClick={false}
+                >
+                  {!rerouters || rerouters.length === 0 ? (
+                    isLoadingReroute ? (
+                      <div className="p-4 flex flex-col items-center justify-center min-h-[150px]">
+                        <Loader2 className="w-8 h-8 animate-spin text-lime-500 mb-2" />
+                        <p className="text-sm font-medium text-gray-700 dark:text-gray-300">Calculating alternatives...</p>
+                        <p className="text-xs text-gray-400 mt-1">Analyzing traffic & weather...</p>
+                      </div>
+                    ) : (
+                      <div className="p-3 max-w-xs">
+                        <div className="flex items-center gap-2 mb-2 text-amber-500">
+                          <TriangleAlert className="w-5 h-5" />
+                          <span className="font-bold text-sm uppercase tracking-wide">Instability Ahead</span>
+                        </div>
+                        <p className="text-gray-600 text-xs mb-4 leading-relaxed dark:text-gray-300">
+                          Severe weather disruption predicted on the upcoming segment. Efficiency is dropping rapidly.
+                        </p>
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleFetchReroutes();
+                          }}
+                          className="w-full bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-semibold py-2.5 px-3 rounded-lg shadow-md transition-all flex items-center justify-center gap-2"
+                        >
+                          <TrendingUp className="w-4 h-4" />
+                          <span>Find Alternative Routes</span>
+                        </button>
+                      </div>
+                    )
+                  ) : (
+                    <div className="p-2">
+                      <div className="mb-3 border-b pb-2 border-gray-100 dark:border-gray-700">
+                        <h4 className="font-semibold text-sm text-gray-800 dark:text-gray-200">Alternative Routes</h4>
+                        <p className="text-[10px] text-gray-500">From {rerouteSource || "Current Location"}</p>
+                      </div>
+                      <div className="space-y-2 max-h-[250px] overflow-y-auto pr-1 custom-scrollbar">
+                        {rerouters.map(r => (
+                          <div
+                            key={r.id}
+                            onClick={() => handleConfirmReroute(r)}
+                            className="group cursor-pointer rounded-lg border border-gray-200 dark:border-gray-700 p-2.5 hover:border-indigo-500 hover:bg-indigo-50 dark:hover:bg-indigo-900/20 transition-all"
+                          >
+                            <div className="flex justify-between items-start mb-1">
+                              <div className="flex items-center gap-2">
+                                <div className="w-6 h-6 rounded-full bg-indigo-100 text-indigo-600 flex items-center justify-center text-[10px] font-bold">
+                                  {r.courier.avatar}
+                                </div>
+                                <span className="font-medium text-xs text-gray-700 dark:text-gray-300 group-hover:text-indigo-600">{r.courier.name}</span>
+                              </div>
+                              <span className="bg-lime-100 text-lime-700 text-[10px] px-1.5 py-0.5 rounded font-medium">
+                                {(r.resilienceScore).toFixed(1)}/10
+                              </span>
+                            </div>
+                            <div className="flex items-center gap-3 text-[10px] text-gray-500 dark:text-gray-400 pl-8">
+                              <span className="flex items-center gap-1"><Clock className="w-3 h-3" /> {formatTime(r.time)}</span>
+                              <span className="flex items-center gap-1">{r.distance}</span>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                </Popup>
+              </Marker>
+            )}
+
+            {/* Intermediate Markers */}
+            {intermediateCoords.map((coord, index) => {
+              // Try to get name from intermediate_cities first, then waypoints
+              const cityName = (route as any).intermediate_cities?.[index]?.name || route.waypoints?.[index] || "Way point";
+
+              return (
+                <CircleMarker
+                  key={`waypoint-${index}`}
+                  center={coord}
+                  radius={6}
+                  pathOptions={{
+                    fillColor: "#3b82f6", // Blue-500
+                    fillOpacity: 1,
+                    color: "white",
+                    weight: 2,
+                  }}
+                >
+                  <Popup><strong>Via:</strong> {cityName}</Popup>
+                </CircleMarker>
+              );
+            })}
           </MapContainer>
 
           {/* Efficiency Score (using resilience score from ML module) */}
@@ -480,8 +893,13 @@ export function MapView({ route, isDarkMode = false }: MapViewProps) {
               </div>
             </div>
 
-            <button className="px-6 py-2.5 bg-lime-500 text-white rounded-lg">
-              <Phone className="w-4 h-4 inline" /> Contact Logistics
+            <button
+              onClick={handleSimulate}
+              disabled={isSimulating}
+              className={`px-6 py-2.5 text-white rounded-lg transition-colors ${isSimulating ? 'bg-gray-400 cursor-not-allowed' : 'bg-lime-500 hover:bg-lime-600'
+                }`}
+            >
+              <TrendingUp className="w-4 h-4 inline mr-2" /> {isSimulating ? 'Simulating...' : 'Simulate'}
             </button>
           </div>
         </div>

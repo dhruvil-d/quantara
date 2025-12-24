@@ -13,10 +13,18 @@ interface RouteListProps {
 
 export function RouteList({ routes, selectedRoute, onSelectRoute, isDarkMode = false }: RouteListProps) {
   // Routes with resilience score > 8 are recommended (sorted by efficiency/score descending)
-  const recommendedRoutes = routes
+  // Routes with resilience score > 8 are recommended (sorted by efficiency/score descending)
+  // Fallback: If no routes > 8, recommend the single best route available
+  let recommendedRoutes = routes
     .filter(route => route.resilienceScore > 8)
     .sort((a, b) => b.resilienceScore - a.resilienceScore);
-  
+
+  if (recommendedRoutes.length === 0 && routes.length > 0) {
+    // Sort all routes and take the best one
+    const sortedAll = [...routes].sort((a, b) => b.resilienceScore - a.resilienceScore);
+    recommendedRoutes = [sortedAll[0]];
+  }
+
   // All routes are evaluated (all routes from ML module, sorted by efficiency/score descending)
   // This matches the number of routes returned by ML module
   const evaluatedRoutes = [...routes].sort((a, b) => b.resilienceScore - a.resilienceScore);
@@ -37,8 +45,8 @@ export function RouteList({ routes, selectedRoute, onSelectRoute, isDarkMode = f
             <TabsTrigger
               value="recommended"
               className={`flex-1 rounded-full transition-all ${isDarkMode
-                  ? 'data-[state=active]:bg-lime-500 data-[state=active]:text-gray-900'
-                  : 'data-[state=active]:bg-lime-500 data-[state=active]:text-white'
+                ? 'data-[state=active]:bg-lime-500 data-[state=active]:text-gray-900'
+                : 'data-[state=active]:bg-lime-500 data-[state=active]:text-white'
                 }`}
             >
               Recommended
@@ -52,8 +60,8 @@ export function RouteList({ routes, selectedRoute, onSelectRoute, isDarkMode = f
             <TabsTrigger
               value="evaluated"
               className={`flex-1 rounded-full transition-all ${isDarkMode
-                  ? 'data-[state=active]:bg-lime-500 data-[state=active]:text-gray-900'
-                  : 'data-[state=active]:bg-lime-500 data-[state=active]:text-white'
+                ? 'data-[state=active]:bg-lime-500 data-[state=active]:text-gray-900'
+                : 'data-[state=active]:bg-lime-500 data-[state=active]:text-white'
                 }`}
             >
               Evaluated
@@ -71,18 +79,18 @@ export function RouteList({ routes, selectedRoute, onSelectRoute, isDarkMode = f
           <div className="space-y-3 pb-6">
             {recommendedRoutes.length > 0 ? (
               recommendedRoutes.map((route) => (
-              <RouteCard
-                key={`rec-${route.id}`}
-                route={route}
+                <RouteCard
+                  key={`rec-${route.id}`}
+                  route={route}
                   isSelected={selectedRoute?.id === route.id}
-                onClick={() => onSelectRoute(route)}
-                isDarkMode={isDarkMode}
-              />
+                  onClick={() => onSelectRoute(route)}
+                  isDarkMode={isDarkMode}
+                />
               ))
             ) : (
               <div className={`text-center py-8 ${isDarkMode ? 'text-gray-400' : 'text-gray-500'}`}>
                 <p>No recommended routes found.</p>
-                <p className="text-sm mt-2">Routes with resilience score &gt; 8 will appear here.</p>
+                <p className="text-sm mt-2">Try adjusting your source or destination.</p>
               </div>
             )}
           </div>
@@ -92,13 +100,13 @@ export function RouteList({ routes, selectedRoute, onSelectRoute, isDarkMode = f
           <div className="space-y-3 pb-6">
             {evaluatedRoutes.length > 0 ? (
               evaluatedRoutes.map((route) => (
-              <RouteCard
-                key={`eval-${route.id}`}
-                route={route}
+                <RouteCard
+                  key={`eval-${route.id}`}
+                  route={route}
                   isSelected={selectedRoute?.id === route.id}
-                onClick={() => onSelectRoute(route)}
-                isDarkMode={isDarkMode}
-              />
+                  onClick={() => onSelectRoute(route)}
+                  isDarkMode={isDarkMode}
+                />
               ))
             ) : (
               <div className={`text-center py-8 ${isDarkMode ? 'text-gray-400' : 'text-gray-500'}`}>

@@ -8,6 +8,7 @@ import { LiveNewsAlerts } from "./components/LiveNewsAlerts";
 import { NewsPanel } from "./components/NewsPanel";
 import { SelectionPage } from "./components/SelectionPage";
 import { LoadingOverlay } from "./components/LoadingOverlay";
+import RerouteSelection from "./components/RerouteSelection";
 import { useState } from "react";
 import { Plug, Moon, Sun, GripVertical, GripHorizontal, Menu, X } from "lucide-react";
 import { Panel, PanelGroup, PanelResizeHandle } from "react-resizable-panels";
@@ -30,6 +31,11 @@ export interface Route {
   };
   isRecommended: boolean;
   waypoints?: string[]; // Intermediate cities to force distinct paths
+  intermediate_cities?: {
+    name: string;
+    lat: number;
+    lon: number;
+  }[];
   coordinates?: {
     origin: [number, number];
     destination: [number, number];
@@ -146,9 +152,12 @@ const mockRoutes: Route[] = [
 ];
 
 export default function App() {
-  const [view, setView] = useState<"selection" | "dashboard">("selection");
-  const [routes, setRoutes] = useState<Route[]>([]); // Start empty - no dummy data
+  // State Definitions
+  const [view, setView] = useState<"selection" | "dashboard" | "reroute_selection">("selection");
+  const [routes, setRoutes] = useState<Route[]>([]);
   const [selectedRoute, setSelectedRoute] = useState<Route | null>(null);
+  const [rerouteOptions, setRerouteOptions] = useState<Route[]>([]);
+
   const [isIntegrationsOpen, setIsIntegrationsOpen] = useState(false);
   const [isDarkMode, setIsDarkMode] = useState(false);
   const [isMenuOpen, setIsMenuOpen] = useState(false);
@@ -160,6 +169,89 @@ export default function App() {
   const [loadingLogs, setLoadingLogs] = useState<string[]>([]);
   const [loadingProgress, setLoadingProgress] = useState(0);
   const [osmnxEnabled, setOsmnxEnabled] = useState(false);
+
+  // Reroute Simulation Placeholder
+  const handleSimulateReroute = () => {
+    // console.log("App.tsx: User requested reroute simulation.");
+  };
+
+  // Reroute Request Handler (Triggered from MapView Popup)
+  const handleRerouteRequest = async (location: { lat: number; lon: number }) => {
+    console.log("APP: Reroute requested from", location);
+    setIsLoadingRoutes(true);
+    setLoadingLogs(prev => [...prev, "Analyzing instability...", "Calculating alternative paths from current location..."]);
+    setLoadingProgress(20);
+
+    try {
+      const response = await fetch("http://localhost:5000/reroute", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          currentLocation: location,
+          destination: destCity || selectedRoute?.destination,
+          excludeRouteId: selectedRoute?.id,
+          excludeRouteName: selectedRoute?.courier?.name
+        })
+      });
+
+      const data = await response.json();
+      console.log("APP: Reroute options received:", data.routes?.length);
+
+      if (data.routes && data.routes.length > 0) {
+        setRerouteOptions(data.routes);
+        setView("reroute_selection"); // Switch View
+        setLoadingLogs(prev => [...prev, `Found ${data.routes.length} alternatives.`]);
+      } else {
+        alert("No alternative routes found. Proceed with caution.");
+      }
+
+    } catch (e) {
+      console.error("APP: Reroute failed", e);
+      alert("Failed to calculate reroutes.");
+    } finally {
+      setIsLoadingRoutes(false);
+      setLoadingProgress(0);
+      setLoadingLogs([]);
+    }
+  };
+
+  const handleRerouteConfirm = (routeId: string) => {
+    const chosen = rerouteOptions.find(r => r.id === routeId);
+    if (chosen) {
+      setRoutes([chosen]);
+      setSelectedRoute(chosen);
+      setView("dashboard");
+    }
+  };
+
+  // Traversed Path State
+  const [traversedPath, setTraversedPath] = useState<[number, number][]>([]);
+
+  const handleInPopupRouteUpdate = async (newRoute: Route) => {
+    console.log("APP: Route updated from popup", newRoute);
+
+    // Fetch traversed path for the current (old) route
+    // Use dbRouteId (MongoDB _id) if available for unique identification
+    const routeIdForFetch = (selectedRoute as any)?.dbRouteId || selectedRoute?.id;
+    if (routeIdForFetch) {
+      try {
+        console.log("APP: Fetching covered points for route:", routeIdForFetch);
+        const res = await fetch(`http://localhost:5000/covered-points/${routeIdForFetch}`);
+        const points = await res.json();
+        if (Array.isArray(points)) {
+          setTraversedPath(points);
+          console.log("APP: Traversed path loaded with", points.length, "points");
+        }
+      } catch (e) {
+        console.error("Failed to fetch traversed path", e);
+      }
+    }
+
+    setRoutes([newRoute]);
+    setSelectedRoute(newRoute);
+    // Optional: Add log
+    setLoadingLogs(prev => [...prev, `Rerouted via ${newRoute.courier.name}`]);
+  };
 
   const handleSelection = async (source: string, destination: string) => {
     console.log("=".repeat(60));
@@ -230,8 +322,10 @@ export default function App() {
       console.log(`Analysis complete: ${data.analysisComplete}`);
 
       if (data.routes && data.routes.length > 0) {
-        const recommendedCount = data.routes.filter((r: Route) => r.resilienceScore > 8).length;
-        console.log(`Recommended routes (score > 8): ${recommendedCount}`);
+        let recommendedCount = data.routes.filter((r: Route) => r.resilienceScore > 8).length;
+        if (recommendedCount === 0 && data.routes.length > 0) recommendedCount = 1; // Fallback logic matching UI
+
+        console.log(`Recommended routes: ${recommendedCount}`);
         console.log("Route details:");
         data.routes.forEach((route: Route, index: number) => {
           const routeName = (route as any).route_name || route.courier.name || route.id;
@@ -241,8 +335,11 @@ export default function App() {
         setLoadingLogs(prev => [...prev, `Found ${data.routes.length} route(s)`, `Recommended: ${recommendedCount} route(s)`]);
         setLoadingProgress(90);
 
-        setRoutes(data.routes);
-        setSelectedRoute(data.routes[0]);
+        // Sort routes by score (Descending)
+        const sortedRoutes = data.routes.sort((a: Route, b: Route) => b.resilienceScore - a.resilienceScore);
+
+        setRoutes(sortedRoutes);
+        setSelectedRoute(sortedRoutes[0]);
         setLoadingLogs(prev => [...prev, "✓ Analysis complete!"]);
         setLoadingProgress(100);
         console.log("FRONTEND: Routes updated successfully");
@@ -381,6 +478,15 @@ export default function App() {
     );
   }
 
+  if (view === "reroute_selection") {
+    return (
+      <RerouteSelection
+        routes={rerouteOptions}
+        onContinue={handleRerouteConfirm}
+      />
+    );
+  }
+
   return (
     <div className={`h-screen flex flex-col overflow-hidden ${isDarkMode ? 'bg-gray-900' : 'bg-white'}`}>
       {/* Loading Overlay */}
@@ -390,6 +496,7 @@ export default function App() {
         logs={loadingLogs}
         isDarkMode={isDarkMode}
       />
+
 
       {/* Header */}
       {/* Floating Hamburger Menu */}
@@ -508,7 +615,14 @@ export default function App() {
                   {/* Map View */}
                   <Panel defaultSize={75} minSize={50}>
                     {selectedRoute ? (
-                      <MapView route={selectedRoute} isDarkMode={isDarkMode} />
+                      <MapView
+                        route={selectedRoute}
+                        isDarkMode={isDarkMode}
+                        onSimulate={handleSimulateReroute}
+                        onReroute={handleRerouteRequest}
+                        onRouteUpdate={handleInPopupRouteUpdate}
+                        traversedPath={traversedPath}
+                      />
                     ) : (
                       <div className="flex items-center justify-center h-full">
                         <div className={`text-center ${isDarkMode ? 'text-gray-400' : 'text-gray-500'}`}>
