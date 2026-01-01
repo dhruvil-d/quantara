@@ -32,6 +32,7 @@ def run_analysis(
     dest_name: Optional[str] = None,
     priorities: Optional[Dict[str, float]] = None,
     osmnx_enabled: Optional[bool] = None,
+    previous_route_data: Optional[Dict[str, Any]] = None,
 ) -> Dict[str, Any]:
     """
     Run comprehensive route analysis with coordinates provided by backend.
@@ -46,11 +47,9 @@ def run_analysis(
         dest_lng: Destination longitude (float)
         origin_name: Optional origin location name (for display/logging only)
         dest_name: Optional destination location name (for display/logging only)
-        priorities: Optional dict with user priorities (0-1 range):
-            - time: Weight for time priority
-            - distance: Weight for distance priority
-            - carbon_emission: Weight for carbon emission priority
-            - road_quality: Weight for road quality priority
+        priorities: Optional dict with user priorities (0-1 range)
+        osmnx_enabled: Optional override for OSMnx
+        previous_route_data: Optional previous route data for reroute comparison
     
     Returns:
         Dictionary with analysis results:
@@ -58,6 +57,8 @@ def run_analysis(
         - resilience_scores: Resilience scoring results
         - best_route: Best route name
         - analysis_complete: Boolean indicating completion status
+        - comparison_report: Comparison with previous route (if reroute)
+        - is_reroute: Boolean indicating if this is a reroute
         - error: Error message if analysis failed
     """
     try:
@@ -69,6 +70,8 @@ def run_analysis(
         logger.info(f"User Priorities: {json.dumps(priorities or {}, indent=2)}")
         if osmnx_enabled is not None:
             logger.info(f"OSMnx enabled (override from caller): {osmnx_enabled}")
+        if previous_route_data:
+            logger.info(f"REROUTE: Previous route data provided - {previous_route_data.get('route_name', 'Unknown')}")
         logger.info("NOTE: Coordinates provided by backend - no geocoding performed in ML module")
         
         # Validate coordinates
@@ -92,6 +95,7 @@ def run_analysis(
             destination_name=dest_name,
             max_alternatives=3,
             osmnx_enabled=osmnx_enabled,
+            previous_route_data=previous_route_data,
         )
         
         # Log results summary
@@ -177,6 +181,7 @@ if __name__ == "__main__":
             dest_name=input_data.get("dest_name"),
             priorities=input_data.get("priorities"),
             osmnx_enabled=input_data.get("osmnx_enabled"),
+            previous_route_data=input_data.get("previous_route_data"),
         )
         
         # Output JSON result to stdout

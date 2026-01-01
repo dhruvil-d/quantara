@@ -17,7 +17,9 @@ import {
   ChevronUp,
   Info,
   TriangleAlert,
+  FileText,
 } from "lucide-react";
+import { ReportModal } from "./ReportModal";
 
 // Fix leaflet icons
 import icon from "leaflet/dist/images/marker-icon.png";
@@ -35,9 +37,10 @@ interface MapViewProps {
   route: Route;
   isDarkMode?: boolean;
   onSimulate?: () => void;
-  onReroute?: (location: { lat: number, lon: number }) => void;
-  onRouteUpdate?: (newRoute: Route) => void;
+  onReroute?: (location: { lat: number, lon: number }, pathHistory: [number, number][]) => void;
+  onRouteUpdate?: (newRoute: Route, pathData: { traversed: [number, number][], abandoned: [number, number][] }) => void;
   traversedPath?: [number, number][];
+  abandonedPath?: [number, number][];
 }
 
 // Automatically re-center and fix map container issues
@@ -67,9 +70,10 @@ const IntermediateIcon = L.icon({
   popupAnchor: [0, -38]
 });
 
-export function MapView({ route, isDarkMode = false, onSimulate, onReroute, onRouteUpdate, traversedPath }: MapViewProps) {
+export function MapView({ route, isDarkMode = false, onSimulate, onReroute, onRouteUpdate, traversedPath, abandonedPath }: MapViewProps) {
   const [originCoords, setOriginCoords] = React.useState<[number, number] | null>(null);
   const [destCoords, setDestCoords] = React.useState<[number, number] | null>(null);
+  const [originalOriginCoords, setOriginalOriginCoords] = React.useState<[number, number] | null>(null);
   const [intermediateCoords, setIntermediateCoords] = React.useState<[number, number][]>([]);
   const [routePath, setRoutePath] = React.useState<[number, number][]>([]);
   const [isLoading, setIsLoading] = React.useState(false);
@@ -79,11 +83,20 @@ export function MapView({ route, isDarkMode = false, onSimulate, onReroute, onRo
   const [isSimulating, setIsSimulating] = React.useState(false);
   const [instabilityPopupPos, setInstabilityPopupPos] = React.useState<[number, number] | null>(null);
   const popupMarkerRef = React.useRef<L.Marker>(null);
+  const [isReroute, setIsReroute] = React.useState(false);
+  const hasSimulatedRerouteRef = React.useRef(false);
 
   // In-Popup Reroute States
   const [rerouters, setRerouters] = React.useState<Route[]>([]);
   const [rerouteSource, setRerouteSource] = React.useState<string>("");
   const [isLoadingReroute, setIsLoadingReroute] = React.useState(false);
+
+  // Report Modal States
+  const [showReportModal, setShowReportModal] = React.useState(false);
+  const [comparisonReport, setComparisonReport] = React.useState<any>(null);
+  const [originalRouteData, setOriginalRouteData] = React.useState<any>(null);
+  const [selectedRerouteData, setSelectedRerouteData] = React.useState<Route | null>(null);
+  const [simulationCompleted, setSimulationCompleted] = React.useState(false);
 
   React.useEffect(() => {
     if (instabilityPopupPos && popupMarkerRef.current) {
@@ -97,7 +110,14 @@ export function MapView({ route, isDarkMode = false, onSimulate, onReroute, onRo
     setInstabilityPopupPos(null);
     setRerouters([]);
     setRerouteSource("");
-  }, [route]);
+
+    // Reset reroute state when traversedPath is cleared (new route analysis)
+    if (!traversedPath || traversedPath.length === 0) {
+      setIsReroute(false);
+      setOriginalOriginCoords(null);
+      hasSimulatedRerouteRef.current = false;
+    }
+  }, [route, traversedPath]);
 
   const formatTime = (timeStr: string) => {
     // Attempt to parse "1064 mins" or similar
@@ -117,26 +137,171 @@ export function MapView({ route, isDarkMode = false, onSimulate, onReroute, onRo
 
     setIsLoadingReroute(true);
 
-    // Determine the name of the 2nd intermediate city triggers reroute
-    // We can guess it from the intermediate_cities array based on index logic or just take the 2nd one
-    // Logic from getSimulationIndices implies we stop at 2nd city
+    // Use the 2nd intermediate city as source since simulation stops there
     const interCities = (route as any).intermediate_cities || [];
-    const sourceName = interCities.length >= 2 ? interCities[1].name : "Current Location";
+    const sourceName = interCities.length >= 2 ? interCities[1].name : (interCities.length >= 1 ? interCities[0].name : "Current Location");
     setRerouteSource(sourceName);
 
+    // Note: We no longer call onReroute here to avoid navigating to a separate page
+    // All reroute logic is handled inline in this popup
+
     try {
+      // Calculate traversed metrics (from origin to current location)
+      let traversedMetrics = {
+        distanceKm: 0,
+        timeMinutes: 0,
+        costInr: 0,
+        carbonKg: 0
+      };
+
+      if (routePath && routePath.length > 0 && instabilityPopupPos) {
+        // Simple Haversine distance calculation
+        const getDistanceFromLatLonInKm = (lat1: number, lon1: number, lat2: number, lon2: number) => {
+          var R = 6371; // Radius of the earth in km
+          var dLat = (lat2 - lat1) * (Math.PI / 180);
+          var dLon = (lon2 - lon1) * (Math.PI / 180);
+          var a =
+            Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+            Math.cos(lat1 * (Math.PI / 180)) * Math.cos(lat2 * (Math.PI / 180)) *
+            Math.sin(dLon / 2) * Math.sin(dLon / 2);
+          var c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+          return R * c;
+        };
+
+        // Find index of nearest point to instabilityPopupPos
+        let minIdx = -1;
+        let minDist = Infinity;
+        for (let i = 0; i < routePath.length; i++) {
+          const dist = getDistanceFromLatLonInKm(routePath[i][0], routePath[i][1], instabilityPopupPos[0], instabilityPopupPos[1]);
+          if (dist < minDist) {
+            minDist = dist;
+            minIdx = i;
+          }
+        }
+
+        // Calculate distance up to that point
+        let currentDist = 0;
+        for (let i = 0; i < minIdx; i++) {
+          currentDist += getDistanceFromLatLonInKm(routePath[i][0], routePath[i][1], routePath[i + 1][0], routePath[i + 1][1]);
+        }
+
+        traversedMetrics.distanceKm = Math.round(currentDist);
+
+        // Parse total route metrics to estimate traversed values proportionally
+        let totalDist = 0;
+        const distMatch = route.distance.match(/(\d+)/);
+        if (distMatch) totalDist = parseInt(distMatch[1]);
+
+        if (totalDist > 0) {
+          const ratio = currentDist / totalDist;
+
+          // Time
+          let totalTimeMins = 0;
+          const hrsMatch = route.time.match(/(\d+)\s*hrs?/);
+          const minsMatch = route.time.match(/(\d+)\s*mins?/);
+          if (hrsMatch) totalTimeMins += parseInt(hrsMatch[1]) * 60;
+          if (minsMatch) totalTimeMins += parseInt(minsMatch[1]);
+          traversedMetrics.timeMinutes = Math.round(totalTimeMins * ratio);
+
+          // Cost
+          let totalCost = 0;
+          const costMatch = route.cost.replace(/[₹,]/g, '').match(/(\d+)/);
+          if (costMatch) totalCost = parseInt(costMatch[1]);
+          traversedMetrics.costInr = Math.round(totalCost * ratio);
+
+          // Carbon
+          let totalCarbon = 0;
+          const carbonMatch = route.carbonEmission.match(/(\d+)/);
+          if (carbonMatch) totalCarbon = parseInt(carbonMatch[1]);
+          traversedMetrics.carbonKg = Math.round(totalCarbon * ratio);
+        }
+      }
+
+      console.log("Calculated traversed metrics:", traversedMetrics);
+
       const response = await axios.post("http://localhost:5000/reroute", {
         currentLocation: { lat: instabilityPopupPos[0], lon: instabilityPopupPos[1] },
         destination: route.destination,
         excludeRouteId: route.id,
         excludeRouteName: route.courier.name,
-        sourceName: sourceName
+        sourceName: sourceName,
+        // Pass original trip info for report generation
+        originalTripSource: route.origin,
+        originalTripDestination: route.destination,
+        originalRouteName: route.courier.name,
+        // Pass original route metrics for fallback
+        originalRouteTime: route.time,
+        originalRouteDistance: route.distance,
+        originalRouteCost: route.cost,
+        originalRouteCarbonEmission: route.carbonEmission,
+        originalRouteResilienceScore: route.resilienceScore,
+        // Pass specific traversed metrics so backend can add them to new route metrics
+        traversedMetrics: traversedMetrics,
+        // Pass any known risk factors
+        originalRiskFactors: (route as any).news_sentiment_analysis?.risk_factors ||
+          (route as any).geminiOutput?.risk_factors ||
+          (route as any).analysisData?.risk_factors ||
+          []
       });
 
       if (response.data.routes) {
         // Sort reroutes by resilience score (descending)
         const sortedReroutes = response.data.routes.sort((a: Route, b: Route) => b.resilienceScore - a.resilienceScore);
         setRerouters(sortedReroutes);
+
+        // Store comparison report and original route for later
+        if (response.data.comparisonReport) {
+          setComparisonReport(response.data.comparisonReport);
+        }
+
+        // Set original route data - use response data if available, otherwise construct from current route
+        if (response.data.originalRoute) {
+          setOriginalRouteData({
+            ...response.data.originalRoute,
+            // Ensure source is the original trip origin, not the reroute source
+            source: response.data.originalRoute.source || route.origin,
+            destination: response.data.originalRoute.destination || route.destination
+          });
+        } else {
+          // Fallback: construct from current route data with full metrics
+          // Parse time to get minutes
+          let timeMinutes = 0;
+          if (route.time) {
+            const hrsMatch = route.time.match(/(\d+)\s*hrs?/);
+            const minsMatch = route.time.match(/(\d+)\s*mins?/);
+            if (hrsMatch) timeMinutes += parseInt(hrsMatch[1]) * 60;
+            if (minsMatch) timeMinutes += parseInt(minsMatch[1]);
+          }
+
+          // Parse distance, cost, carbon
+          const distanceKm = route.distance ? parseInt(route.distance.match(/(\d+)/)?.[1] || '0') : 0;
+          const costInr = route.cost ? parseInt(route.cost.replace(/[₹,]/g, '').match(/(\d+)/)?.[1] || '0') : 0;
+          const carbonKg = route.carbonEmission ? parseInt(route.carbonEmission.match(/(\d+)/)?.[1] || '0') : 0;
+
+          setOriginalRouteData({
+            route_name: route.courier.name,
+            source: route.origin,
+            destination: route.destination,
+            sentiment_analysis: {
+              sentiment_score: 0.5,
+              risk_factors: (route as any).geminiOutput?.risk_factors ||
+                (route as any).analysisData?.risk_factors ||
+                ["Instability detected - route conditions changed"],
+              positive_factors: []
+            },
+            resilience_scores: { overall: route.resilienceScore * 10 },
+            // Include route metrics
+            time: route.time,
+            distance: route.distance,
+            cost: route.cost,
+            carbon: route.carbonEmission,
+            // Include numeric values for calculations
+            time_minutes: timeMinutes,
+            distance_km: distanceKm,
+            cost_inr: costInr,
+            carbon_kg: carbonKg
+          });
+        }
       }
     } catch (e) {
       console.error("Reroute fetch failed", e);
@@ -145,9 +310,34 @@ export function MapView({ route, isDarkMode = false, onSimulate, onReroute, onRo
     }
   };
 
+
   const handleConfirmReroute = (newRoute: Route) => {
+    // Calculate the traversed path (up to current position) and abandoned path (remaining old route)
+    const traversedPathData = routePath.slice(0, coveredIndex + 1) as [number, number][];
+    const abandonedPathData = routePath.slice(coveredIndex) as [number, number][];
+
+    // Save original origin coordinates before switching routes
+    if (originCoords && !originalOriginCoords) {
+      setOriginalOriginCoords(originCoords);
+    }
+
+    // Store the selected reroute for report
+    setSelectedRerouteData(newRoute);
+    setSimulationCompleted(false); // Reset, will be set true when reroute simulation completes
+
+    // Set reroute flag to indicate we're on a rerouted path
+    setIsReroute(true);
+
+    // Close popup and reset states
+    setInstabilityPopupPos(null);
+    setRerouters([]);
+    setRerouteSource("");
+    setCoveredIndex(0);
+    setIsSimulating(false);
+
+    // Update route in parent with path data
     if (onRouteUpdate) {
-      onRouteUpdate(newRoute);
+      onRouteUpdate(newRoute, { traversed: traversedPathData, abandoned: abandonedPathData });
     }
   };
 
@@ -200,8 +390,7 @@ export function MapView({ route, isDarkMode = false, onSimulate, onReroute, onRo
     const indices2 = sampleIndices(idx1, idx2, 5);
 
     // Construct sequence of INDICES
-    // Ensure we start roughly at 0, but user wants to simulate "movement"
-    // So steps: [sample1...sample5, idx1, sample6...sample10, idx2]
+    // Stop at the SECOND intermediate city (idx2) as this is where the disruption occurs
     return [...indices1, idx1, ...indices2, idx2];
   };
 
@@ -259,6 +448,40 @@ export function MapView({ route, isDarkMode = false, onSimulate, onReroute, onRo
 
     setIsSimulating(false);
   };
+
+  // Continuous simulation for rerouted paths - goes all the way to destination
+  const simulationTimeoutRef = React.useRef<NodeJS.Timeout | null>(null);
+
+  const handleContinuousSimulation = React.useCallback(async () => {
+    if (routePath.length === 0) return;
+
+    setIsSimulating(true);
+    setCoveredIndex(0);
+
+    // Sample ~20 points evenly distributed along the route
+    const totalPoints = routePath.length;
+    const sampleCount = Math.min(20, totalPoints);
+    const step = Math.floor(totalPoints / sampleCount);
+
+    for (let i = 0; i < sampleCount; i++) {
+      const idx = Math.min(i * step, totalPoints - 1);
+
+      // Update UI: Advance the covered path
+      setCoveredIndex(idx);
+
+      // Delay 1.5 seconds between points for smooth animation
+      await new Promise(resolve => setTimeout(resolve, 1500));
+    }
+
+    // Ensure we reach the destination
+    setCoveredIndex(totalPoints - 1);
+
+    setIsSimulating(false);
+
+    // Mark that reroute simulation has completed
+    hasSimulatedRerouteRef.current = true;
+    setSimulationCompleted(true); // Enable "Show Report" button
+  }, [routePath]);
   const geocodeCity = async (city: string): Promise<[number, number] | null> => {
     try {
       const response = await axios.get(
@@ -368,7 +591,11 @@ export function MapView({ route, isDarkMode = false, onSimulate, onReroute, onRo
         // Geocode intermediate waypoints
         // 1. Try to use coordinates from backend model if available
         if ((route as any).intermediate_cities && (route as any).intermediate_cities.length > 0) {
-          const coords = (route as any).intermediate_cities.map((city: any) => [city.lat, city.lon] as [number, number]);
+          // Limit to showing only 2 intermediate cities as per user requirement
+          const rawCities = (route as any).intermediate_cities;
+          const citiesToShow = rawCities.length > 2 ? rawCities.slice(0, 2) : rawCities;
+
+          const coords = citiesToShow.map((city: any) => [city.lat, city.lon] as [number, number]);
           setIntermediateCoords(coords);
         } else {
           // 2. Fallback: Geocode from 'waypoints' string array
@@ -484,6 +711,30 @@ export function MapView({ route, isDarkMode = false, onSimulate, onReroute, onRo
     loadMapData();
   }, [route]);
 
+  // Auto-start continuous simulation 3 seconds after reroute path loads
+  React.useEffect(() => {
+    // Only trigger if: reroute mode, path exists, not currently simulating, and hasn't already simulated
+    if (isReroute && routePath.length > 0 && !isSimulating && !hasSimulatedRerouteRef.current) {
+      // Clear any existing timeout
+      if (simulationTimeoutRef.current) {
+        clearTimeout(simulationTimeoutRef.current);
+      }
+
+      // Start simulation after 3 seconds
+      simulationTimeoutRef.current = setTimeout(() => {
+        console.log("Auto-starting continuous simulation on rerouted path...");
+        handleContinuousSimulation();
+      }, 3000);
+    }
+
+    // Cleanup on unmount
+    return () => {
+      if (simulationTimeoutRef.current) {
+        clearTimeout(simulationTimeoutRef.current);
+      }
+    };
+  }, [isReroute, routePath.length, isSimulating, handleContinuousSimulation]);
+
   const bounds: L.LatLngBoundsExpression | null =
     originCoords && destCoords ? [originCoords, destCoords] : null;
 
@@ -521,8 +772,9 @@ export function MapView({ route, isDarkMode = false, onSimulate, onReroute, onRo
 
             <MapController bounds={bounds} />
 
-            {originCoords && (
-              <Marker position={originCoords}>
+            {/* Origin Marker - Use original origin when on rerouted path */}
+            {(isReroute ? originalOriginCoords : originCoords) && (
+              <Marker position={(isReroute && originalOriginCoords) ? originalOriginCoords : originCoords!}>
                 <Popup><strong>Origin:</strong> {route.origin}</Popup>
               </Marker>
             )}
@@ -570,6 +822,18 @@ export function MapView({ route, isDarkMode = false, onSimulate, onReroute, onRo
                 color="#1e3a8a"
                 weight={4}
                 opacity={1.0}
+              />
+            )}
+
+            {/* Abandoned Path (Old route that wasn't traversed) - Dark Green */}
+            {abandonedPath && abandonedPath.length > 0 && (
+              <Polyline
+                positions={abandonedPath}
+                color="#365314"
+                weight={5}
+                opacity={0.7}
+                dashArray="10, 10"
+                smoothFactor={0}
               />
             )}
 
@@ -875,35 +1139,86 @@ export function MapView({ route, isDarkMode = false, onSimulate, onReroute, onRo
           </div>
         </div>
 
-        {/* Bottom Stats Bar – unchanged */}
-        <div className="border-t px-8 py-5 bg-white dark:bg-gray-800">
+        {/* Bottom Stats Bar – Theme-aware */}
+        <div className={`border-t px-8 py-5 ${isDarkMode ? 'bg-gray-800 border-gray-700' : 'bg-white border-gray-200'}`}>
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-8">
               <div>
-                <div className="text-xs text-gray-500">Route</div>
-                <div>{route.origin} → {route.destination}</div>
+                <div className={`text-xs ${isDarkMode ? 'text-gray-400' : 'text-gray-500'}`}>Route</div>
+                <div className={`flex items-center gap-2 ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>
+                  {/* Show: Original Origin → Intermediate City → Destination ONLY for rerouted routes */}
+                  {isReroute && originalOriginCoords && originalRouteData?.source ? (
+                    <>
+                      <span>{originalRouteData.source}</span>
+                      <span className={isDarkMode ? 'text-gray-500' : 'text-gray-400'}>→</span>
+                      {route.intermediate_cities && route.intermediate_cities.length >= 1 && (
+                        <>
+                          <span className={isDarkMode ? 'text-lime-400 font-medium' : 'text-lime-600 font-medium'}>
+                            {route.intermediate_cities[0].name}
+                          </span>
+                          <span className={isDarkMode ? 'text-gray-500' : 'text-gray-400'}>→</span>
+                        </>
+                      )}
+                      <span>{route.destination}</span>
+                    </>
+                  ) : (
+                    // Default: Simple Origin → Destination format
+                    <>
+                      <span>{route.origin}</span>
+                      <span className={isDarkMode ? 'text-gray-500' : 'text-gray-400'}>→</span>
+                      <span>{route.destination}</span>
+                    </>
+                  )}
+                </div>
               </div>
               <div>
-                <div className="text-xs text-gray-500">Distance</div>
-                <div>{route.distance}</div>
+                <div className={`text-xs ${isDarkMode ? 'text-gray-400' : 'text-gray-500'}`}>Distance</div>
+                <div className={isDarkMode ? 'text-white' : 'text-gray-900'}>{route.distance}</div>
               </div>
               <div>
-                <div className="text-xs text-gray-500">Estimated Time</div>
-                <div>{route.time}</div>
+                <div className={`text-xs ${isDarkMode ? 'text-gray-400' : 'text-gray-500'}`}>Estimated Time</div>
+                <div className={isDarkMode ? 'text-white' : 'text-gray-900'}>{route.time}</div>
               </div>
             </div>
 
-            <button
-              onClick={handleSimulate}
-              disabled={isSimulating}
-              className={`px-6 py-2.5 text-white rounded-lg transition-colors ${isSimulating ? 'bg-gray-400 cursor-not-allowed' : 'bg-lime-500 hover:bg-lime-600'
-                }`}
-            >
-              <TrendingUp className="w-4 h-4 inline mr-2" /> {isSimulating ? 'Simulating...' : 'Simulate'}
-            </button>
+            {/* Conditional button: Show Report after reroute completes, otherwise Start Trip */}
+            {simulationCompleted && isReroute ? (
+              <button
+                onClick={() => setShowReportModal(true)}
+                className={`px-6 py-2.5 rounded-lg transition-colors flex items-center gap-2 ${isDarkMode
+                  ? 'bg-indigo-500 hover:bg-indigo-400 text-white'
+                  : 'bg-indigo-600 hover:bg-indigo-700 text-white'
+                  }`}
+              >
+                <FileText className="w-4 h-4" />
+                Show Report
+              </button>
+            ) : (
+              <button
+                onClick={handleSimulate}
+                disabled={isSimulating || isReroute}
+                className={`px-6 py-2.5 text-white rounded-lg transition-colors ${isSimulating || isReroute
+                  ? isDarkMode ? 'bg-gray-600 cursor-not-allowed' : 'bg-gray-400 cursor-not-allowed'
+                  : isDarkMode ? 'bg-lime-600 hover:bg-lime-500' : 'bg-lime-500 hover:bg-lime-600'
+                  }`}
+              >
+                <TrendingUp className="w-4 h-4 inline mr-2" />
+                {isSimulating ? 'Simulating...' : 'Start Trip'}
+              </button>
+            )}
           </div>
         </div>
       </div>
+
+      {/* Report Modal */}
+      <ReportModal
+        isOpen={showReportModal}
+        onClose={() => setShowReportModal(false)}
+        comparisonReport={comparisonReport}
+        originalRoute={originalRouteData}
+        newRoute={selectedRerouteData}
+        isDarkMode={isDarkMode}
+      />
     </div>
   );
 }

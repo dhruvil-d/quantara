@@ -169,6 +169,7 @@ export default function App() {
   const [loadingLogs, setLoadingLogs] = useState<string[]>([]);
   const [loadingProgress, setLoadingProgress] = useState(0);
   const [osmnxEnabled, setOsmnxEnabled] = useState(false);
+  const [isRerouted, setIsRerouted] = useState(false); // Track if current route is a rerouted version
 
   // Reroute Simulation Placeholder
   const handleSimulateReroute = () => {
@@ -176,8 +177,9 @@ export default function App() {
   };
 
   // Reroute Request Handler (Triggered from MapView Popup)
-  const handleRerouteRequest = async (location: { lat: number; lon: number }) => {
+  const handleRerouteRequest = async (location: { lat: number; lon: number }, pathHistory: [number, number][]) => {
     console.log("APP: Reroute requested from", location);
+    setTempPathHistory(pathHistory); // Store the path history
     setIsLoadingRoutes(true);
     setLoadingLogs(prev => [...prev, "Analyzing instability...", "Calculating alternative paths from current location..."]);
     setLoadingProgress(20);
@@ -215,9 +217,15 @@ export default function App() {
     }
   };
 
-  const handleRerouteConfirm = (routeId: string) => {
+  const handleRerouteConfirm = async (routeId: string) => {
     const chosen = rerouteOptions.find(r => r.id === routeId);
     if (chosen) {
+      // Use the traversed path history passed from MapView during reroute request
+      if (tempPathHistory && tempPathHistory.length > 0) {
+        setTraversedPath(tempPathHistory);
+        console.log("APP: Traversed path set from history:", tempPathHistory.length, "points");
+      }
+
       setRoutes([chosen]);
       setSelectedRoute(chosen);
       setView("dashboard");
@@ -226,29 +234,39 @@ export default function App() {
 
   // Traversed Path State
   const [traversedPath, setTraversedPath] = useState<[number, number][]>([]);
+  const [abandonedPath, setAbandonedPath] = useState<[number, number][]>([]);
+  const [tempPathHistory, setTempPathHistory] = React.useState<[number, number][]>([]);
 
-  const handleInPopupRouteUpdate = async (newRoute: Route) => {
+  const handleInPopupRouteUpdate = async (newRoute: Route, pathData?: { traversed: [number, number][], abandoned: [number, number][] }) => {
     console.log("APP: Route updated from popup", newRoute);
 
-    // Fetch traversed path for the current (old) route
-    // Use dbRouteId (MongoDB _id) if available for unique identification
-    const routeIdForFetch = (selectedRoute as any)?.dbRouteId || selectedRoute?.id;
-    if (routeIdForFetch) {
-      try {
-        console.log("APP: Fetching covered points for route:", routeIdForFetch);
-        const res = await fetch(`http://localhost:5000/covered-points/${routeIdForFetch}`);
-        const points = await res.json();
-        if (Array.isArray(points)) {
-          setTraversedPath(points);
-          console.log("APP: Traversed path loaded with", points.length, "points");
+    // Use path data directly from MapView if provided
+    if (pathData) {
+      console.log("APP: Setting traversed path with", pathData.traversed.length, "points");
+      console.log("APP: Setting abandoned path with", pathData.abandoned.length, "points");
+      setTraversedPath(pathData.traversed);
+      setAbandonedPath(pathData.abandoned);
+    } else {
+      // Fallback: Fetch traversed path for the current (old) route from database
+      const routeIdForFetch = (selectedRoute as any)?.dbRouteId || selectedRoute?.id;
+      if (routeIdForFetch) {
+        try {
+          console.log("APP: Fetching covered points for route:", routeIdForFetch);
+          const res = await fetch(`http://localhost:5000/covered-points/${routeIdForFetch}`);
+          const points = await res.json();
+          if (Array.isArray(points)) {
+            setTraversedPath(points);
+            console.log("APP: Traversed path loaded with", points.length, "points");
+          }
+        } catch (e) {
+          console.error("Failed to fetch traversed path", e);
         }
-      } catch (e) {
-        console.error("Failed to fetch traversed path", e);
       }
     }
 
     setRoutes([newRoute]);
     setSelectedRoute(newRoute);
+    setIsRerouted(true); // Mark that this is a rerouted route
     // Optional: Add log
     setLoadingLogs(prev => [...prev, `Rerouted via ${newRoute.courier.name}`]);
   };
@@ -267,10 +285,13 @@ export default function App() {
     setSelectedRoute(null);
     setLoadingLogs([]);
     setLoadingProgress(0);
+    setTraversedPath([]);
+    setAbandonedPath([]);
 
     setSourceCity(source);
     setDestCity(destination);
     setIsLoadingRoutes(true);
+    setIsRerouted(false); // Reset reroute flag for new analysis
     setView("dashboard");
 
     // Add initial log
@@ -330,6 +351,26 @@ export default function App() {
         data.routes.forEach((route: Route, index: number) => {
           const routeName = (route as any).route_name || route.courier.name || route.id;
           console.log(`  ${index + 1}. ${routeName} - Score: ${route.resilienceScore.toFixed(2)}/10 - Status: ${route.status}`);
+
+          // Log sentiment analysis data
+          const sentimentAnalysis = (route as any).news_sentiment_analysis;
+          if (sentimentAnalysis) {
+            console.log(`%c📊 SENTIMENT ANALYSIS FOR ${routeName}`, 'color: #a855f7; font-weight: bold; font-size: 14px;');
+            console.log(`  📈 Sentiment Score: ${(sentimentAnalysis.sentiment_score * 100).toFixed(1)}%`);
+            if (sentimentAnalysis.risk_factors?.length > 0) {
+              console.log(`  ⚠️ Risk Factors:`, sentimentAnalysis.risk_factors);
+            }
+            if (sentimentAnalysis.positive_factors?.length > 0) {
+              console.log(`  ✅ Positive Factors:`, sentimentAnalysis.positive_factors);
+            }
+            if (sentimentAnalysis.reasoning) {
+              console.log(`  💡 Reasoning: ${sentimentAnalysis.reasoning}`);
+            }
+            if (sentimentAnalysis.article_sentiments?.length > 0) {
+              console.log(`  📰 Article Sentiments:`, sentimentAnalysis.article_sentiments);
+            }
+            console.log('---');
+          }
         });
 
         setLoadingLogs(prev => [...prev, `Found ${data.routes.length} route(s)`, `Recommended: ${recommendedCount} route(s)`]);
@@ -561,6 +602,8 @@ export default function App() {
                   selectedRoute={selectedRoute}
                   onSelectRoute={setSelectedRoute}
                   isDarkMode={isDarkMode}
+                  originalOrigin={isRerouted ? sourceCity : undefined}
+                  isRerouted={isRerouted}
                 />
               ) : (
                 <div className="flex items-center justify-center h-full">
@@ -622,6 +665,7 @@ export default function App() {
                         onReroute={handleRerouteRequest}
                         onRouteUpdate={handleInPopupRouteUpdate}
                         traversedPath={traversedPath}
+                        abandonedPath={abandonedPath}
                       />
                     ) : (
                       <div className="flex items-center justify-center h-full">

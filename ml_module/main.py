@@ -3,7 +3,7 @@ Main Orchestrator for Supply Chain Route Analysis
 
 Coordinates all analysis modules to:
 1. Get routes from Google Maps API (with OSRM fallback)
-2. Analyze time, distance, carbon emissions, and road quality
+2. Analyze time, distance, carbon emissions, road quality, and news sentiment
 3. Calculate resilience scores based on user priorities
 4. Return ranked routes with comprehensive metrics
 """
@@ -25,6 +25,7 @@ from ml_module.analysis.road_analysis import RoadAnalyzer
 from ml_module.analysis.weather_analysis import WeatherAnalyzer
 from ml_module.analysis.segmentation import extract_segments_for_routes
 from ml_module.analysis.road_safety_score import RoadSafetyScorer
+from ml_module.analysis.news_analysis import fetch_route_news
 from ml_module.scoring.resilience_calculator import ResilienceCalculator
 from ml_module.analysis.gemini_summary import generate_summary
 from ml_module.utils.logger import get_logger
@@ -74,7 +75,8 @@ class RouteAnalysisSystem:
                       origin_name: Optional[str] = None,
                       destination_name: Optional[str] = None,
                       max_alternatives: int = 3,
-                      osmnx_enabled: Optional[bool] = None) -> Dict[str, Any]:
+                      osmnx_enabled: Optional[bool] = None,
+                      previous_route_data: Optional[Dict[str, Any]] = None) -> Dict[str, Any]:
         """
         Main function to analyze routes and return resilience scores.
         
@@ -89,6 +91,8 @@ class RouteAnalysisSystem:
             origin_name: Optional name of origin location
             destination_name: Optional name of destination location
             max_alternatives: Maximum number of alternative routes to analyze
+            osmnx_enabled: Optional override for OSMnx
+            previous_route_data: Optional previous route data for comparison (reroute)
         
         Returns:
             Dictionary with:
@@ -96,6 +100,7 @@ class RouteAnalysisSystem:
             - resilience_scores: Resilience scoring results
             - best_route: Best route name
             - analysis_complete: Boolean status
+            - comparison_report: Comparison with previous route (if reroute)
         """
         logger.info("="*80)
         logger.info("STARTING COMPREHENSIVE ROUTE ANALYSIS")
@@ -110,12 +115,17 @@ class RouteAnalysisSystem:
         # Set default priorities if not provided
         if not user_priorities:
             user_priorities = {
-                "time": 0.25,
-                "distance": 0.25,
-                "carbon_emission": 0.25,
-                "road_quality": 0.25
+                "time": 0.20,
+                "distance": 0.20,
+                "carbon_emission": 0.20,
+                "road_quality": 0.20,
+                "news_sentiment": 0.20  # Always enabled by default
             }
             logger.info(f"Using default priorities: {user_priorities}")
+        
+        # Ensure news_sentiment priority exists (default to 20% if not provided)
+        if "news_sentiment" not in user_priorities:
+            user_priorities["news_sentiment"] = 0.20
         
         try:
             # Step 1: Get routes from Google Maps (with OSRM fallback)
@@ -198,57 +208,148 @@ class RouteAnalysisSystem:
             carbon_results = self.carbon_analyzer.analyze(routes)
             carbon_scores = {r["route_name"]: r["carbon_score"] for r in carbon_results}
             
+            # Fetch news articles if sentiment analysis is enabled
+            news_sentiment_scores = {}
+            news_articles_for_gemini = None
+            news_sentiment_priority = user_priorities.get("news_sentiment", 0)
+            
+            if news_sentiment_priority > 0:
+                logger.info("\n→ FETCHING NEWS FOR SENTIMENT ANALYSIS")
+                
+                # Collect cities for news search
+                route_cities = set()
+                if origin_name:
+                    route_cities.add(origin_name.split(",")[0].strip())
+                if destination_name:
+                    route_cities.add(destination_name.split(",")[0].strip())
+                
+                if route_cities:
+                    cities_list = list(route_cities)
+                    logger.info(f"Fetching news for cities: {cities_list}")
+                    articles = fetch_route_news(cities_list, max_articles=10)
+                    
+                    if articles:
+                        logger.info(f"Fetched {len(articles)} news articles for Gemini analysis")
+                        # Convert to dict format for Gemini
+                        news_articles_for_gemini = [
+                            {
+                                "title": a.title,
+                                "description": a.description,
+                                "source": a.source,
+                                "published_at": a.published_at
+                            }
+                            for a in articles
+                        ]
+                    else:
+                        logger.info("No news articles found")
+            else:
+                logger.info("\n→ NEWS SENTIMENT ANALYSIS (SKIPPED - priority is 0)")
+            
             logger.info("\n✓ All analyses complete")
             
-            # Step 3: Calculate resilience scores
+            # Step 3: Calculate preliminary resilience scores (without news sentiment)
             logger.info("\n" + "="*60)
-            logger.info("STEP 3: CALCULATING RESILIENCE SCORES")
+            logger.info("STEP 3: CALCULATING PRELIMINARY RESILIENCE SCORES")
             logger.info("="*60)
             
             route_names = [r["route_name"] for r in routes]
+            
+            # Temporary scores for Gemini context (assume neutral sentiment 0.5 initially)
+            temp_sentiment_scores = {name: 0.5 for name in route_names}
+            
+            preliminary_results = self.resilience_calculator.calculate(
+                routes=route_names,
+                time_scores=time_scores,
+                distance_scores=distance_scores,
+                carbon_scores=carbon_scores,
+                road_quality_scores=road_quality_scores,
+                priorities=user_priorities,
+                news_sentiment_scores=temp_sentiment_scores 
+            )
+            
+            # Create a lookup for preliminary results
+            prelim_lookup = {r["route_name"]: r for r in preliminary_results}
+
+            # Step 4: Gemini Summary Generation (combined with news sentiment)
+            logger.info("\n" + "="*60)
+            logger.info("STEP 4: GENERATING GEMINI SUMMARIES" + (" + NEWS SENTIMENT" if news_articles_for_gemini else ""))
+            logger.info("="*60)
+            
+            # Prepare data for Gemini (pre-enrichment)
+            temp_routes_data = []
+            for i, r in enumerate(routes):
+                r_name = r["route_name"]
+                prelim_data = prelim_lookup.get(r_name, {})
+                
+                temp_routes_data.append({
+                    "route_name": r_name,
+                    "distance_text": distance_scores.get(r_name, {}),
+                    "avg_weather_risk": road_results[i]["avg_weather_risk"] if i < len(road_results) else 0,
+                    "road_safety_score": safety_scores.get(r_name, 0.5),
+                    "carbon_score": carbon_scores.get(r_name, 0),
+                    "coordinates": r.get("coordinates", []),
+                    # Pass the preliminary score to Gemini
+                    "overall_resilience_score": prelim_data.get("overall_resilience_score", 0),
+                    "component_scores": prelim_data.get("component_scores", {})
+                })
+            
+            # Combined Gemini call (summary + sentiment + optional comparison)
+            is_reroute = previous_route_data is not None
+            if is_reroute:
+                logger.info("REROUTE DETECTED - will include comparison report")
+            
+            gemini_combined_results = self.generate_summary(
+                routes_data=temp_routes_data,
+                overall_context={
+                    "origin": origin_name,
+                    "destination": destination_name,
+                    "priorities": user_priorities
+                },
+                news_articles=news_articles_for_gemini,
+                previous_route_data=previous_route_data
+            )
+            
+            # Extract routes and sentiment from combined result
+            gemini_results = gemini_combined_results.get("routes", gemini_combined_results)
+            news_sentiment_result = gemini_combined_results.get("news_sentiment", {})
+            comparison_report = gemini_combined_results.get("comparison_report", None)
+            
+            if comparison_report:
+                logger.info(f"Comparison report generated: {comparison_report.get('summary', 'N/A')[:80]}...")
+            
+            # Extract sentiment score if news analysis was done
+            if news_sentiment_priority > 0 and news_articles_for_gemini:
+                sentiment_score = news_sentiment_result.get("sentiment_score", 0.5)
+                logger.info(f"News sentiment score from Gemini: {sentiment_score:.2f}")
+                
+                # Apply same sentiment score to all routes
+                for route in routes:
+                    news_sentiment_scores[route.get("route_name", "Unknown")] = sentiment_score
+            
+            # Now calculate final resilience scores with news sentiment
+            logger.info("\n" + "="*60)
+            logger.info("STEP 5: CALCULATING FINAL RESILIENCE SCORES")
+            logger.info("="*60)
+            
             resilience_results = self.resilience_calculator.calculate(
                 routes=route_names,
                 time_scores=time_scores,
                 distance_scores=distance_scores,
                 carbon_scores=carbon_scores,
                 road_quality_scores=road_quality_scores,
-                priorities=user_priorities
+                priorities=user_priorities,
+                news_sentiment_scores=news_sentiment_scores if news_sentiment_priority > 0 else None
             )
             
-            # Step 4: Gemini Summary Generation
-            logger.info("\n" + "="*60)
-            logger.info("STEP 4: GENERATING GEMINI SUMMARIES")
-            logger.info("="*60)
-            
-            # Prepare data for Gemini (pre-enrichment)
-            # We construct a temporary enriched list to give context to Gemini
-            temp_routes_data = []
-            for i, r in enumerate(routes):
-                r_name = r["route_name"]
-                temp_routes_data.append({
-                    "route_name": r_name,
-                    "distance_text": distance_scores.get(r_name, {}), # actually scores, but passed for ID
-                    "overall_resilience_score": resilience_results[i]["overall_resilience_score"] if i < len(resilience_results) else 0,
-                    "component_scores": resilience_results[i]["component_scores"] if i < len(resilience_results) else {},
-                    "avg_weather_risk": road_results[i]["avg_weather_risk"] if i < len(road_results) else 0,
-                    "road_safety_score": safety_scores.get(r_name, 0.5),
-                    "carbon_score": carbon_scores.get(r_name, 0),
-                    "coordinates": r.get("coordinates", [])
-                })
-                
-            gemini_results = self.generate_summary(
-                routes_data=temp_routes_data,
-                overall_context={
-                    "origin": origin_name,
-                    "destination": destination_name,
-                    "priorities": user_priorities
-                }
-            )
+            # Update temp_routes_data with resilience scores for combine step
+            for i, r_data in enumerate(temp_routes_data):
+                if i < len(resilience_results):
+                    r_data["overall_resilience_score"] = resilience_results[i]["overall_resilience_score"]
+                    r_data["component_scores"] = resilience_results[i]["component_scores"]
 
-
-            # Step 5: Combine all results into enriched routes
+            # Step 6: Combine all results into enriched routes
             logger.info("\n" + "="*60)
-            logger.info("STEP 5: COMBINING RESULTS")
+            logger.info("STEP 6: COMBINING RESULTS")
             logger.info("="*60)
             
             enriched_routes = self._combine_results(
@@ -259,7 +360,8 @@ class RouteAnalysisSystem:
                 road_results=road_results,
                 resilience_results=resilience_results,
                 safety_scores=safety_scores,
-                gemini_results=gemini_results
+                gemini_results=gemini_results,
+                news_sentiment_result=news_sentiment_result if news_sentiment_priority > 0 else None
             )
             
             # Format resilience scores for output
@@ -269,7 +371,9 @@ class RouteAnalysisSystem:
                 "routes": enriched_routes,
                 "resilience_scores": formatted_scores,
                 "best_route": formatted_scores["best_route_name"],
-                "analysis_complete": True
+                "analysis_complete": True,
+                "comparison_report": comparison_report,
+                "is_reroute": is_reroute
             }
             
             logger.info("="*80)
@@ -277,6 +381,8 @@ class RouteAnalysisSystem:
             logger.info(f"✓ Analyzed {len(enriched_routes)} routes")
             logger.info(f"✓ Best route: {formatted_scores['best_route_name']}")
             logger.info(f"✓ Reason: {formatted_scores['reason_for_selection']}")
+            if is_reroute:
+                logger.info("✓ Comparison report included (reroute)")
             logger.info("="*80)
             
             return result
@@ -343,7 +449,8 @@ class RouteAnalysisSystem:
                         road_results: List[Dict[str, Any]],
                         resilience_results: List[Dict[str, Any]],
                         safety_scores: Dict[str, float],
-                        gemini_results: Optional[Dict[str, Any]] = None) -> List[Dict[str, Any]]:
+                        gemini_results: Optional[Dict[str, Any]] = None,
+                        news_sentiment_result: Optional[Dict[str, Any]] = None) -> List[Dict[str, Any]]:
         """
         Combine all analysis results into enriched route dictionaries.
         
@@ -355,6 +462,8 @@ class RouteAnalysisSystem:
             road_results: Road analysis results
             resilience_results: Resilience calculation results
             safety_scores: Road safety scores
+            gemini_results: Gemini route analysis results
+            news_sentiment_result: News sentiment analysis results (optional)
         
         Returns:
             List of enriched route dictionaries
@@ -384,7 +493,7 @@ class RouteAnalysisSystem:
             if gemini_results:
                 gemini_data = gemini_results.get(route_name, {})
                 
-                      # --- LIMIT INTERMEDIATE CITIES TO 2 ---
+            # --- LIMIT INTERMEDIATE CITIES TO 2 ---
             raw_intermediate = gemini_data.get("intermediate_cities", [])
 
             intermediate_cities = [
@@ -398,7 +507,6 @@ class RouteAnalysisSystem:
                 and "lat" in city
                 and "lon" in city
             ][:2]
-
 
                 
             # Combine into enriched route
@@ -433,26 +541,40 @@ class RouteAnalysisSystem:
                 "total_rainfall": road_data.get("total_rainfall", 0),
                 "road_type_distribution": road_data.get("road_type_distribution", {}),
                 
-                # Road Safety Score (New)
+                # Road Safety Score
                 "road_safety_score": safety_score,
+                
+                # News Sentiment (if available)
+                "news_sentiment_score": resilience_data.get("component_scores", {}).get("news_sentiment_score", 0.5),
                 
                 # Resilience score
                 "overall_resilience_score": resilience_data.get("overall_resilience_score", 0),
                 "component_scores": resilience_data.get("component_scores", {}),
                 "weighted_contributions": resilience_data.get("weighted_contributions", {}),
                 
-                # Gemini Analysis (New)
+                # Gemini Analysis
                 "gemini_analysis": {
                     "route_name": gemini_data.get("route_name", route_name),
                     "short_summary": gemini_data.get("short_summary", "Analysis pending..."),
                     "reasoning": gemini_data.get("reasoning", "Detailed analysis not available."),
-                   "intermediate_cities": intermediate_cities,
+                    "intermediate_cities": intermediate_cities,
                     "weather_risk_score": road_data.get("avg_weather_risk", 0) * 100,
                     "road_safety_score": safety_score * 100,
                     "carbon_score": carbon_data.get("carbon_score", 0) * 100,
                     "overall_resilience_score": resilience_data.get("overall_resilience_score", 0)
                 }
             }
+            
+            # Add news sentiment analysis if available
+            if news_sentiment_result:
+                enriched_route["news_sentiment_analysis"] = {
+                    "sentiment_score": news_sentiment_result.get("sentiment_score", 0.5),
+                    "risk_factors": news_sentiment_result.get("risk_factors", []),
+                    "positive_factors": news_sentiment_result.get("positive_factors", []),
+                    "reasoning": news_sentiment_result.get("reasoning", ""),
+                    "article_sentiments": news_sentiment_result.get("article_sentiments", [])
+                }
+                enriched_route["gemini_analysis"]["news_sentiment_score"] = news_sentiment_result.get("sentiment_score", 0.5) * 100
             
             enriched.append(enriched_route)
             

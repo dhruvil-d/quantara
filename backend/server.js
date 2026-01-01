@@ -97,12 +97,12 @@ app.use((req, res, next) => {
 app.get("/", (req, res) => {
     log("Root endpoint accessed");
     res.json({
-        message: "B2B Dashboard Backend API - Formula-Based Scoring",
-        version: "2.0.0",
+        message: "B2B Dashboard Backend API - Formula-Based Scoring with Sentiment Analysis",
+        version: "2.1.0",
         endpoints: {
             "GET /geocode": "Geocode city name to coordinates",
             "GET /route": "Get route between coordinates (GraphHopper)",
-            "POST /analyze-routes": "Analyze routes using ML module (calls Google Maps + full analysis)",
+            "POST /analyze-routes": "Analyze routes using ML module (calls Google Maps + full analysis + sentiment)",
             "POST /rescore-routes": "Re-score routes with new priorities (cached data, no API calls)"
         },
         features: [
@@ -110,7 +110,9 @@ app.get("/", (req, res) => {
             "Time, distance, carbon, and road quality analysis",
             "Weather integration via Open-Meteo",
             "Road type analysis via OSMnx",
-            "Route caching for fast priority updates"
+            "News sentiment analysis (20% fixed weight)",
+            "Route caching for fast priority updates",
+            "Route comparison for reroutes"
         ]
     });
 });
@@ -226,11 +228,11 @@ app.get("/route", async (req, res) => {
 });
 
 // -----------------------------
-// 🧠 ML Route Analysis (Full Analysis)
+// 🧠 ML Route Analysis (Full Analysis with Sentiment)
 // -----------------------------
 app.post("/analyze-routes", async (req, res) => {
     log("=" * 60);
-    log("=== FULL ROUTE ANALYSIS REQUEST ===");
+    log("=== FULL ROUTE ANALYSIS REQUEST (WITH SENTIMENT) ===");
     log("=" * 60);
 
     const { source, destination, priorities, osmnxEnabled } = req.body;
@@ -248,6 +250,11 @@ app.post("/analyze-routes", async (req, res) => {
     }
 
     try {
+        // Clear previous data for a clean session
+        await CoveredPoint.deleteMany({});
+        await RecommendedRoute.deleteMany({});
+        log("Cleared previous CoveredPoints and RecommendedRoutes");
+
         // Step 1: Geocode source and destination
         log("\n→ GEOCODING");
         log(`Geocoding source: ${source}...`);
@@ -274,15 +281,30 @@ app.post("/analyze-routes", async (req, res) => {
         log(`✓ Source: ${source} -> (${sourceLat}, ${sourceLon})`);
         log(`✓ Destination: ${destination} -> (${destLat}, ${destLon})`);
 
-        // Step 2: Prepare user priorities (normalize to 0-1 range)
+        // Step 2: Prepare user priorities
+        // News sentiment is FIXED at 20%, user-controllable priorities share remaining 80%
+        const userTime = priorities?.time || 25;
+        const userDistance = priorities?.distance || 25;
+        const userSafety = priorities?.safety || 25;
+        const userCarbon = priorities?.carbonEmission || 25;
+
+        // Normalize user priorities to sum to 80% (leaving 20% for news sentiment)
+        const userTotal = userTime + userDistance + userSafety + userCarbon;
+        const scale = 0.80 / (userTotal / 100);  // Scale factor to make them sum to 80%
+
         const userPriorities = {
-            time: (priorities?.time || 25) / 100,
-            distance: (priorities?.distance || 25) / 100,
-            carbon_emission: (priorities?.carbonEmission || 25) / 100,
-            road_quality: (priorities?.safety || 25) / 100  // Map 'safety' to 'road_quality'
+            time: (userTime / 100) * scale,
+            distance: (userDistance / 100) * scale,
+            carbon_emission: (userCarbon / 100) * scale,
+            road_quality: (userSafety / 100) * scale,
+            news_sentiment: 0.20  // FIXED at 20%, not user-controllable
         };
 
-        log(`Normalized priorities: ${JSON.stringify(userPriorities)}`);
+        log(`Normalized priorities (80% user + 20% sentiment): ${JSON.stringify(userPriorities)}`);
+
+        // Note: No previous route lookup here - comparison only happens in /reroute
+        // This is the first-time analysis, sentiment will be saved for future comparison
+        let previousRouteData = null;
 
         // Step 3: Call Python ML module
         log("\n→ ML MODULE CALL");
@@ -297,7 +319,8 @@ app.post("/analyze-routes", async (req, res) => {
             source_name: source,
             dest_name: destination,
             priorities: userPriorities,
-            osmnx_enabled: typeof osmnxEnabled === "boolean" ? osmnxEnabled : undefined
+            osmnx_enabled: typeof osmnxEnabled === "boolean" ? osmnxEnabled : undefined,
+            previous_route_data: previousRouteData
         });
 
         log(`Input data size: ${inputData.length} bytes`);
@@ -427,6 +450,7 @@ app.post("/analyze-routes", async (req, res) => {
                         carbon_score: Math.round(geminiAnalysis.carbon_score || (route.carbon_score || 0) * 100),
                         social_risk_score: 0, // Keeping for backward compatibility if needed, but UI uses carbon
                         traffic_risk_score: 0,
+                        news_sentiment_score: Math.round(route.news_sentiment_score || 50),
 
                         overall_resilience_score: Math.round(geminiAnalysis.overall_resilience_score || resilienceScore100),
                         short_summary: geminiAnalysis.short_summary || shortSummary,
@@ -456,7 +480,7 @@ app.post("/analyze-routes", async (req, res) => {
                             origin: [sourceLat, sourceLon],
                             destination: [destLat, destLon]
                         },
-                        overview_polyline: route.overview_polyline,
+                        overview_polyline: route.overview_polyline || (route.coordinates && route.coordinates.length > 0 ? polyline.encode(route.coordinates) : ""),
                         analysisData: geminiOutput, // Legacy support
                         geminiOutput: geminiOutput,  // New Frontend field
                         intermediate_cities: intermediateCities
@@ -466,20 +490,74 @@ app.post("/analyze-routes", async (req, res) => {
 
                 log(`Transformed ${routes.length} routes for frontend`);
                 log(`Recommended routes (score > 8): ${routes.filter(r => r.resilienceScore > 8).length}`);
+
                 // ===============================
                 // SAVE BEST ROUTE + START SIMULATION
                 // ===============================
                 console.log("🔥 SAVING BEST ROUTE TO DB");
 
-                const bestRoute = routes.find(r => r.isRecommended);
+                // Find recommended route OR fallback to the highest scoring one (first one as they are sorted or simply the highest score)
+                // Note: transform logic above doesn't sort, so we should find max score if not sorted
+                let bestRoute = routes.find(r => r.isRecommended);
 
                 if (!bestRoute) {
-                    console.warn("⚠️ No recommended route found");
+                    console.log("⚠️ No route met 'Recommended' threshold (>8). Falling back to highest scoring route.");
+                    if (routes.length > 0) {
+                        // Find max score
+                        bestRoute = routes.reduce((prev, current) => (prev.resilienceScore > current.resilienceScore) ? prev : current);
+                        console.log(`✓ Selected fallback route: ${bestRoute.courier.name} (Score: ${bestRoute.resilienceScore})`);
+                    }
+                }
+
+                if (!bestRoute) {
+                    console.warn("⚠️ No routes available to save.");
                 } else {
 
                     const decodedCoordinates = polyline
                         .decode(bestRoute.overview_polyline)
                         .map(([lat, lng]) => ({ lat, lng }));
+
+                    // Get the original ML route data for sentiment info
+                    const mlRouteData = result.routes?.find(r =>
+                        r.route_name === bestRoute.courier.name ||
+                        r.gemini_analysis?.route_name === bestRoute.courier.name
+                    ) || {};
+
+                    // Extract time in minutes from bestRoute.time (e.g., "1064 mins" or "17 hrs")
+                    let timeMinutes = 0;
+                    if (bestRoute.time) {
+                        const hrsMatch = bestRoute.time.match(/(\d+)\s*hrs?/);
+                        const minsMatch = bestRoute.time.match(/(\d+)\s*mins?/);
+                        if (hrsMatch) timeMinutes += parseInt(hrsMatch[1]) * 60;
+                        if (minsMatch) timeMinutes += parseInt(minsMatch[1]);
+                    }
+
+                    // Extract distance in km from bestRoute.distance (e.g., "1076 km")
+                    let distanceKm = 0;
+                    if (bestRoute.distance) {
+                        const kmMatch = bestRoute.distance.match(/(\d+)\s*km/);
+                        if (kmMatch) distanceKm = parseInt(kmMatch[1]);
+                    }
+
+                    // Extract cost from bestRoute.cost (e.g., "₹16,138")
+                    let costInr = 0;
+                    if (bestRoute.cost) {
+                        const costMatch = bestRoute.cost.replace(/[₹,]/g, '').match(/(\d+)/);
+                        if (costMatch) costInr = parseInt(costMatch[1]);
+                    }
+
+                    // Extract carbon from bestRoute.carbonEmission (e.g., "123 kg CO₂")
+                    let carbonKg = 0;
+                    if (bestRoute.carbonEmission) {
+                        const carbonMatch = bestRoute.carbonEmission.match(/(\d+)/);
+                        if (carbonMatch) carbonKg = parseInt(carbonMatch[1]);
+                    }
+
+                    // Get risk_factors from news_sentiment_analysis or gemini_analysis
+                    const sentimentData = mlRouteData.news_sentiment_analysis || {};
+                    const riskFactors = sentimentData.risk_factors ||
+                        mlRouteData.gemini_analysis?.risk_factors ||
+                        [];
 
                     const savedRoute = await RecommendedRoute.create({
                         ml_route_id: bestRoute.id,
@@ -488,10 +566,42 @@ app.post("/analyze-routes", async (req, res) => {
                         source,
                         destination,
 
+                        // Store route metrics for comparison
+                        time_minutes: timeMinutes,
+                        distance_km: distanceKm,
+                        cost_inr: costInr,
+                        carbon_kg: carbonKg,
+
                         overview_polyline: bestRoute.overview_polyline,
                         decoded_coordinates: decodedCoordinates,
 
-                        intermediate_cities: bestRoute.intermediate_cities
+                        intermediate_cities: bestRoute.intermediate_cities,
+
+                        // Store sentiment analysis for future comparison
+                        sentiment_analysis: {
+                            sentiment_score: sentimentData.sentiment_score || 0.5,
+                            risk_factors: riskFactors,
+                            positive_factors: sentimentData.positive_factors || [],
+                            reasoning: sentimentData.reasoning || "No news analyzed"
+                        },
+
+                        // Store resilience scores for comparison
+                        resilience_scores: {
+                            overall: bestRoute.resilienceScore * 10,
+                            time: bestRoute.geminiOutput?.time_score || 0,
+                            distance: bestRoute.geminiOutput?.distance_score || 0,
+                            carbon: bestRoute.geminiOutput?.carbon_score || 0,
+                            road_quality: bestRoute.geminiOutput?.road_safety_score || 0,
+                            news_sentiment: bestRoute.geminiOutput?.news_sentiment_score || 50
+                        },
+
+                        // Store priorities used
+                        priorities_used: {
+                            time: userPriorities.time,
+                            distance: userPriorities.distance,
+                            carbon_emission: userPriorities.carbon_emission,
+                            road_quality: userPriorities.road_quality
+                        }
                     });
 
                     // Use the unique MongoDB _id as the route identifier for simulation
@@ -520,12 +630,17 @@ app.post("/analyze-routes", async (req, res) => {
 
                 log("=" * 60);
                 log("=== ROUTE ANALYSIS COMPLETE ===");
+                if (result.is_reroute) {
+                    log("=== REROUTE - COMPARISON REPORT INCLUDED ===");
+                }
                 log("=" * 60);
 
                 res.json({
                     routes: routes,
                     bestRoute: result.best_route,
-                    analysisComplete: result.analysis_complete
+                    analysisComplete: result.analysis_complete,
+                    comparisonReport: result.comparison_report || null,
+                    isReroute: result.is_reroute || false
                 });
 
             } catch (parseError) {
@@ -574,14 +689,25 @@ app.post("/rescore-routes", async (req, res) => {
     }
 
     try {
+        // News sentiment is FIXED at 20%, user-controllable priorities share remaining 80%
+        const userTime = priorities?.time || 25;
+        const userDistance = priorities?.distance || 25;
+        const userSafety = priorities?.safety || 25;
+        const userCarbon = priorities?.carbonEmission || 25;
+
+        // Normalize user priorities to sum to 80% (leaving 20% for news sentiment)
+        const userTotal = userTime + userDistance + userSafety + userCarbon;
+        const scale = 0.80 / (userTotal / 100);
+
         const userPriorities = {
-            time: (priorities?.time || 25) / 100,
-            distance: (priorities?.distance || 25) / 100,
-            carbon_emission: (priorities?.carbonEmission || 25) / 100,
-            road_quality: (priorities?.safety || 25) / 100
+            time: (userTime / 100) * scale,
+            distance: (userDistance / 100) * scale,
+            carbon_emission: (userCarbon / 100) * scale,
+            road_quality: (userSafety / 100) * scale,
+            news_sentiment: 0.20  // FIXED at 20%, not user-controllable
         };
 
-        log(`Normalized priorities: ${JSON.stringify(userPriorities)}`);
+        log(`Normalized priorities (80% user + 20% sentiment): ${JSON.stringify(userPriorities)}`);
         log(`Using cached routes (${cached.routes.length} routes)`);
 
         log("\n→ ML MODULE CALL (rescore only)");
@@ -653,38 +779,6 @@ app.post("/rescore-routes", async (req, res) => {
                     log(`Re-scoring error: ${result.error}`, "ERROR");
                     return res.status(500).json({ error: result.error });
                 }
-                //const bestRouteName = result.best_route;
-
-                // ⚠️ IMPORTANT: use ML routes, not frontend routes
-                console.log("🔥 SAVING BEST ROUTE TO DB");
-
-                const bestRoute = routes.find(r => r.isRecommended);
-
-                if (!bestRoute) {
-                    console.warn("⚠️ No recommended route found");
-                } else {
-
-                    const decodedCoordinates = polyline
-                        .decode(bestRoute.overview_polyline)
-                        .map(([lat, lng]) => ({ lat, lng }));
-
-                    const savedRoute = await RecommendedRoute.create({
-                        ml_route_id: bestRoute.id,
-                        route_name: bestRoute.courier.name,
-
-                        source,
-                        destination,
-
-                        overview_polyline: bestRoute.overview_polyline,
-                        decoded_coordinates: decodedCoordinates,
-
-                        intermediate_cities: bestRoute.intermediate_cities
-                    });
-
-                    console.log("🚀 STARTING SIMULATION");
-                    simulateRoute(savedRoute).catch(console.error);
-                }
-
 
                 const resilience_scores = result.resilience_scores || {};
                 const scoredRoutes = resilience_scores.routes || [];
@@ -732,10 +826,10 @@ app.post("/rescore-routes", async (req, res) => {
                     const geminiOutput = {
                         weather_risk_score: Math.round(geminiAnalysis.weather_risk_score || weatherRisk * 100),
                         road_safety_score: Math.round(geminiAnalysis.road_safety_score || (route.road_safety_score || 0.5) * 100),
-                        // Now using Carbon Score instead of risks
                         carbon_score: Math.round(geminiAnalysis.carbon_score || (route.carbon_score || 0) * 100),
-                        social_risk_score: 0, // Keeping for backward compatibility if needed, but UI uses carbon
+                        social_risk_score: 0,
                         traffic_risk_score: 0,
+                        news_sentiment_score: Math.round(route.news_sentiment_score || 50),
 
                         overall_resilience_score: Math.round(geminiAnalysis.overall_resilience_score || resilienceScore100),
                         short_summary: geminiAnalysis.short_summary || shortSummary,
@@ -762,15 +856,41 @@ app.post("/rescore-routes", async (req, res) => {
                         },
                         isRecommended: resilienceScore > 8,
                         coordinates: cached.coordinates,
-                        overview_polyline: route.overview_polyline,
+                        overview_polyline: route.overview_polyline || (route.coordinates && route.coordinates.length > 0 ? polyline.encode(route.coordinates) : ""),
                         analysisData: geminiOutput, // Legacy support
                         geminiOutput: geminiOutput,  // New Frontend field
-                        intermediateCities: intermediateCities
+                        intermediate_cities: intermediateCities
                     };
                 }) || [];
 
                 log(`Re-scored ${routes.length} routes`);
                 log(`Recommended routes (score > 8): ${routes.filter(r => r.resilienceScore > 8).length}`);
+
+                // ⚠️ IMPORTANT: Save best route and start simulation AFTER routes are defined
+                console.log("🔥 SAVING BEST ROUTE TO DB");
+
+                const bestRoute = routes.find(r => r.isRecommended);
+
+                if (!bestRoute) {
+                    console.warn("⚠️ No recommended route found");
+                } else {
+                    const decodedCoordinates = polyline
+                        .decode(bestRoute.overview_polyline)
+                        .map(([lat, lng]) => ({ lat, lng }));
+
+                    const savedRoute = await RecommendedRoute.create({
+                        ml_route_id: bestRoute.id,
+                        route_name: bestRoute.courier.name,
+                        source,
+                        destination,
+                        overview_polyline: bestRoute.overview_polyline,
+                        decoded_coordinates: decodedCoordinates,
+                        intermediate_cities: bestRoute.intermediate_cities
+                    });
+
+                    console.log("🚀 STARTING SIMULATION");
+                    simulateRoute(savedRoute).catch(console.error);
+                }
 
                 log("=" * 60);
                 log("=== RE-SCORING COMPLETE ===");
@@ -848,13 +968,33 @@ app.post("/reroute", async (req, res) => {
     log("=== REROUTE REQUEST ===");
     log("=" * 60);
 
-    const { currentLocation, destination, excludeRouteId, excludeRouteName, sourceName } = req.body;
+    const {
+        currentLocation,
+        destination,
+        excludeRouteId,
+        excludeRouteName,
+        sourceName,
+        originalTripSource,
+        originalTripDestination,
+        originalRouteName,
+        // Original route metrics for fallback (passed from frontend)
+        originalRouteTime,
+        originalRouteDistance,
+        originalRouteCost,
+        originalRouteCarbonEmission,
+        originalRouteResilienceScore,
+        originalRiskFactors,
+        // Traversed path metrics (calculated on frontend)
+        traversedMetrics
+    } = req.body;
 
     log(`Current Location: ${JSON.stringify(currentLocation)}`);
     log(`Destination: ${destination}`);
     log(`Exclude Route ID: ${excludeRouteId}`);
     log(`Exclude Route Name: ${excludeRouteName}`);
     log(`Source Name (for reroute): ${sourceName}`);
+    log(`Original Trip: ${originalTripSource} -> ${originalTripDestination}`);
+    log(`Original Route Metrics: Time=${originalRouteTime}, Distance=${originalRouteDistance}, Cost=${originalRouteCost}`);
 
     if (!currentLocation || !destination) {
         return res.status(400).json({ error: "Current location and destination required" });
@@ -872,14 +1012,88 @@ app.post("/reroute", async (req, res) => {
         const [destLon, destLat] = destData.features[0].geometry.coordinates;
         log(`✓ Destination: ${destination} -> (${destLat}, ${destLon})`);
 
-        // Step 2: Call ML Module for New Routes
-        // We act "as if" the source is the current location
-        // Default priorities for reroute (Balance)
+        // Step 2: Fetch previous route from MongoDB for comparison (Task C)
+        log("\n→ FETCHING PREVIOUS ROUTE FOR COMPARISON");
+        let previousRouteData = null;
+        let originalRouteDoc = null;
+
+        try {
+            log(`Searching for original route: originalRouteName='${originalRouteName}', excludeRouteName='${excludeRouteName}', destination='${destination}'`);
+
+            // First, try to find by excludeRouteName (this is the courier name like "The Green Mega-Corridor")
+            if (excludeRouteName) {
+                originalRouteDoc = await RecommendedRoute.findOne({
+                    route_name: excludeRouteName
+                }).sort({ createdAt: -1 });
+
+                if (originalRouteDoc) {
+                    log(`✓ Found original route by excludeRouteName: ${originalRouteDoc.route_name}`);
+                }
+            }
+
+            // Second, try by originalRouteName
+            if (!originalRouteDoc && originalRouteName) {
+                originalRouteDoc = await RecommendedRoute.findOne({
+                    route_name: originalRouteName
+                }).sort({ createdAt: -1 });
+
+                if (originalRouteDoc) {
+                    log(`✓ Found original route by originalRouteName: ${originalRouteDoc.route_name}`);
+                }
+            }
+
+            // Third fallback: Search by source + destination combination
+            if (!originalRouteDoc && originalTripSource && originalTripDestination) {
+                originalRouteDoc = await RecommendedRoute.findOne({
+                    source: { $regex: new RegExp(`^${originalTripSource}$`, 'i') },
+                    destination: { $regex: new RegExp(`^${originalTripDestination}$`, 'i') }
+                }).sort({ createdAt: -1 });
+
+                if (originalRouteDoc) {
+                    log(`✓ Found original route by source+destination: ${originalRouteDoc.route_name}`);
+                }
+            }
+
+            // Fourth fallback: Search by destination only
+            if (!originalRouteDoc) {
+                originalRouteDoc = await RecommendedRoute.findOne({
+                    destination: { $regex: new RegExp(`^${destination}$`, 'i') }
+                }).sort({ createdAt: -1 });
+
+                if (originalRouteDoc) {
+                    log(`✓ Found original route by destination: ${originalRouteDoc.route_name}`);
+                }
+            }
+
+            if (originalRouteDoc) {
+                log(`Found original route: ${originalRouteDoc.route_name} (from ${originalRouteDoc.createdAt})`);
+                log(`  - Sentiment analysis: ${JSON.stringify(originalRouteDoc.sentiment_analysis?.risk_factors || [])}`);
+                previousRouteData = {
+                    route_name: originalRouteDoc.route_name,
+                    sentiment_analysis: originalRouteDoc.sentiment_analysis || {},
+                    resilience_scores: originalRouteDoc.resilience_scores || {},
+                    priorities_used: originalRouteDoc.priorities_used || {},
+                    analyzed_at: originalRouteDoc.createdAt,
+                    source: originalRouteDoc.source,
+                    destination: originalRouteDoc.destination
+                };
+            } else {
+                log("✗ No previous route found in database - will construct from current session");
+                // Log what's actually in the database for debugging
+                const allRoutes = await RecommendedRoute.find({}).select('route_name source destination').limit(5);
+                log(`  Database has ${allRoutes.length} routes: ${allRoutes.map(r => r.route_name).join(', ')}`);
+            }
+        } catch (dbErr) {
+            log(`Warning: Could not fetch previous route: ${dbErr.message}`, "WARN");
+        }
+
+        // Step 3: Call ML Module for New Routes with previous route data
         const userPriorities = {
-            time: 0.3,
-            distance: 0.2,
-            carbon_emission: 0.2,
-            road_quality: 0.3
+            time: 0.24,
+            distance: 0.16,
+            carbon_emission: 0.16,
+            road_quality: 0.24,
+            news_sentiment: 0.20
         };
 
         const pythonScript = path.resolve(__dirname, "..", "ml_module", "run_analysis.py");
@@ -892,7 +1106,8 @@ app.post("/reroute", async (req, res) => {
             dest_lon: destLon,
             source_name: sourceName || "Current Location",
             dest_name: destination,
-            priorities: userPriorities
+            priorities: userPriorities,
+            previous_route_data: previousRouteData  // Pass for Task C comparison
         });
 
         const pythonProcess = spawn(`python "${pythonScript}"`, [], {
@@ -909,7 +1124,7 @@ app.post("/reroute", async (req, res) => {
         pythonProcess.stdout.on("data", (data) => { stdout += data.toString(); });
         pythonProcess.stderr.on("data", (data) => { stderr += data.toString(); });
 
-        pythonProcess.on("close", (code) => {
+        pythonProcess.on("close", async (code) => {
             if (code !== 0) {
                 log(`Reroute Python error: ${stderr}`, "ERROR");
                 return res.status(500).json({ error: "Reroute analysis failed" });
@@ -930,26 +1145,42 @@ app.post("/reroute", async (req, res) => {
 
                 const result = JSON.parse(jsonLine);
                 const scoredRoutes = result.resilience_scores?.routes || [];
+                const comparisonReport = result.comparison_report || null;
+
+                if (comparisonReport) {
+                    log(`Comparison report generated: ${comparisonReport.summary?.substring(0, 80)}...`);
+                }
 
                 // Transform Routes
                 const routes = result.routes?.map((route, index) => {
-                    // Similar definition as /analyze-routes, simplified for brevity
                     const routeName = route.route_name || `Alt Route ${index + 1}`;
                     const scoreData = scoredRoutes.find(r => r.route_name === routeName) || {};
 
                     const resilienceScore = (route.overall_resilience_score || scoreData.overall_resilience_score || 0) / 10;
 
+                    // Add traversed metrics to get Total Journey metrics
+                    const tm = traversedMetrics || { distanceKm: 0, timeMinutes: 0, costInr: 0, carbonKg: 0 };
+
+                    const totalTimeMins = Math.round((route.predicted_duration_min || 0) + (tm.timeMinutes || 0));
+                    const totalDistanceKm = Math.round((route.distance_m / 1000) + (tm.distanceKm || 0));
+
+                    // Cost calculation: Base cost (approx 15 INR/km) + Traversed Cost
+                    const routeCost = Math.round((route.distance_m / 1000) * 15);
+                    const totalCost = Math.round(routeCost + (tm.costInr || 0));
+
+                    const totalCarbon = Math.round((route.total_carbon_kg || 0) + (tm.carbonKg || 0));
+
                     return {
-                        id: `reroute_${index + 1}`, // Distinct IDs
-                        origin: "Current Location",
+                        id: `reroute_${index + 1}`,
+                        origin: sourceName || "Current Location",
                         destination: destination,
                         resilienceScore: resilienceScore,
                         status: resilienceScore > 8 ? "Recommended" : "Valid",
-                        time: `${Math.round(route.predicted_duration_min || 0)} mins`,
-                        cost: `₹${Math.round((route.distance_m / 1000) * 15).toLocaleString()}`,
-                        carbonEmission: `${Math.round(route.total_carbon_kg || 0)} kg CO₂`,
+                        time: `${totalTimeMins} mins`,
+                        cost: `₹${totalCost.toLocaleString()}`,
+                        carbonEmission: `${totalCarbon} kg CO₂`,
                         disruptionRisk: (route.avg_weather_risk || 0) > 0.5 ? "Medium" : "Low",
-                        distance: `${Math.round(route.distance_m / 1000)} km`,
+                        distance: `${totalDistanceKm} km`,
                         courier: {
                             name: route.gemini_analysis?.route_name || routeName,
                             avatar: "AR"
@@ -959,23 +1190,190 @@ app.post("/reroute", async (req, res) => {
                             origin: [currentLocation.lat, currentLocation.lon],
                             destination: [destLat, destLon]
                         },
-                        intermediate_cities: route.gemini_analysis?.intermediate_cities || []
+                        intermediate_cities: route.gemini_analysis?.intermediate_cities || [],
+                        news_sentiment_analysis: route.news_sentiment_analysis || null
                     };
                 }) || [];
 
-                // Exclude the ID if possible (though new IDs are generated, we can filter by geometry similarity if needed later)
-                // For now, return all since "reroute_X" IDs are simpler.
+                // Filter out routes: Remove the first route if it appears to be the same direction
+                // Since we're starting from an intermediate point, the first ML route might be similar to original
+                // Better approach: Remove any route where courier.name matches excludeRouteName OR
+                // has very similar resilience score to avoid duplicates
+                let filteredRoutes = routes;
 
-                // Filter out the excluded route by name if provided
-                const filteredRoutes = routes.filter(r => {
-                    if (!excludeRouteName) return true;
-                    // Check similarity (simple exact match or contains)
-                    return r.courier.name !== excludeRouteName;
-                });
+                if (excludeRouteName) {
+                    // First, try exact name match
+                    const nameFiltered = routes.filter(r => r.courier.name !== excludeRouteName);
+
+                    if (nameFiltered.length === routes.length && routes.length > 1) {
+                        log(`No route matched excludeRouteName '${excludeRouteName}', checking for similarity...`);
+
+                        // Check if the first route is effectively the same as the original based on metrics
+                        const firstRoute = routes[0];
+
+                        // Heuristic: If time and distance are very close (within 5%), assume it's the same route
+                        // Parse numbers from strings like "1234 mins" or "100 km"
+                        const parseMetric = (str) => {
+                            if (!str) return 0;
+                            const match = str.match(/(\d+)/);
+                            return match ? parseInt(match[1]) : 0;
+                        };
+
+                        const firstTime = parseMetric(firstRoute.time);
+                        const firstDist = parseMetric(firstRoute.distance);
+
+                        // Calculate total original metrics (Traversed + Remaining Original)
+                        // originalRouteTime e.g. "21 hrs"
+                        let origTimeMinutes = 0;
+                        if (originalRouteTime) {
+                            const hrs = originalRouteTime.match(/(\d+)\s*hrs/);
+                            const mins = originalRouteTime.match(/(\d+)\s*min/);
+                            if (hrs) origTimeMinutes += parseInt(hrs[1]) * 60;
+                            if (mins) origTimeMinutes += parseInt(mins[1]);
+                        }
+
+                        const origDistKm = parseMetric(originalRouteDistance);
+
+                        // Compare firstRoute (Total Journey) with Original Route (Total Journey)
+                        // Note: firstRoute.time includes traversedMetrics.timeMinutes
+
+                        const timeDiff = Math.abs(firstTime - origTimeMinutes);
+                        const distDiff = Math.abs(firstDist - origDistKm);
+
+                        const isTimeSimilar = origTimeMinutes > 0 && timeDiff < (origTimeMinutes * 0.05); // 5% tolerance, avoid division by zero
+                        const isDistSimilar = origDistKm > 0 && distDiff < (origDistKm * 0.05);
+
+                        if (isTimeSimilar && isDistSimilar) {
+                            log(`First route is similar to original (Time diff: ${timeDiff}m, Dist diff: ${distDiff}km). Skipping.`);
+                            filteredRoutes = routes.slice(1);
+                        } else {
+                            log("First route appears distinct enough from original. Keeping.");
+                            // If purely name filtering failed but metrics differ, we might want to keep it
+                            // OR we default to skipping first if we really want to force alternatives?
+                            // Let's default to skipping if we are unsure, to allow "Alternative" feeling
+                            log("Defaulting to skip first route to ensure alternative is offered.");
+                            filteredRoutes = routes.slice(1);
+
+                            // However, if skipping leaves us with 0 routes, fallback to keeping all
+                            if (filteredRoutes.length === 0) {
+                                log("Skipping resulted in 0 routes, reverting to all routes.");
+                                filteredRoutes = routes;
+                            }
+                        }
+                    } else {
+                        filteredRoutes = nameFiltered;
+                    }
+                }
 
                 log(`Returning ${filteredRoutes.length} routes (after exclusion)`);
 
-                res.json({ routes: filteredRoutes });
+                // Prepare response with comparison report
+                // If no originalRouteDoc from DB, construct a fallback from the excludeRouteName info
+                let originalRouteInfo;
+
+                if (originalRouteDoc) {
+                    // Format time from minutes
+                    const timeMinutes = originalRouteDoc.time_minutes || 0;
+                    const timeText = timeMinutes >= 60
+                        ? `${Math.floor(timeMinutes / 60)} hrs ${timeMinutes % 60} mins`
+                        : `${timeMinutes} mins`;
+
+                    // Format distance
+                    const distanceKm = originalRouteDoc.distance_km || 0;
+                    const distanceText = `${distanceKm} km`;
+
+                    // Format cost
+                    const costInr = originalRouteDoc.cost_inr || 0;
+                    const costText = `₹${costInr.toLocaleString()}`;
+
+                    // Format carbon
+                    const carbonKg = originalRouteDoc.carbon_kg || 0;
+                    const carbonText = `${carbonKg} kg CO₂`;
+
+                    originalRouteInfo = {
+                        route_name: originalRouteDoc.route_name,
+                        source: originalRouteDoc.source,
+                        destination: originalRouteDoc.destination,
+                        sentiment_analysis: originalRouteDoc.sentiment_analysis,
+                        resilience_scores: originalRouteDoc.resilience_scores,
+                        // Add formatted route metrics
+                        time: timeText,
+                        distance: distanceText,
+                        cost: costText,
+                        carbon: carbonText,
+                        // Also include raw values for calculations
+                        time_minutes: timeMinutes,
+                        distance_km: distanceKm,
+                        cost_inr: costInr,
+                        carbon_kg: carbonKg
+                    };
+
+                    log(`Original route metrics: Time=${timeText}, Distance=${distanceText}, Cost=${costText}`);
+                } else {
+                    // Fallback: Use info from the request (current session data from frontend)
+                    // Parse time to get minutes
+                    let origTimeMinutes = 0;
+                    if (originalRouteTime) {
+                        const hrsMatch = originalRouteTime.match(/(\d+)\s*hrs?/);
+                        const minsMatch = originalRouteTime.match(/(\d+)\s*mins?/);
+                        if (hrsMatch) origTimeMinutes += parseInt(hrsMatch[1]) * 60;
+                        if (minsMatch) origTimeMinutes += parseInt(minsMatch[1]);
+                    }
+
+                    // Parse distance to get km
+                    let origDistanceKm = 0;
+                    if (originalRouteDistance) {
+                        const kmMatch = originalRouteDistance.match(/(\d+)/);
+                        if (kmMatch) origDistanceKm = parseInt(kmMatch[1]);
+                    }
+
+                    // Parse cost to get INR
+                    let origCostInr = 0;
+                    if (originalRouteCost) {
+                        const costMatch = originalRouteCost.replace(/[₹,]/g, '').match(/(\d+)/);
+                        if (costMatch) origCostInr = parseInt(costMatch[1]);
+                    }
+
+                    // Parse carbon to get kg
+                    let origCarbonKg = 0;
+                    if (originalRouteCarbonEmission) {
+                        const carbonMatch = originalRouteCarbonEmission.match(/(\d+)/);
+                        if (carbonMatch) origCarbonKg = parseInt(carbonMatch[1]);
+                    }
+
+                    originalRouteInfo = {
+                        route_name: originalRouteName || excludeRouteName || "Original Route",
+                        source: originalTripSource || "Origin",
+                        destination: originalTripDestination || destination,
+                        sentiment_analysis: {
+                            sentiment_score: 0.5,
+                            // Use risk factors from frontend only if provided, otherwise empty (indicates no specific factors)
+                            risk_factors: (originalRiskFactors && originalRiskFactors.length > 0) ? originalRiskFactors : [],
+                            positive_factors: []
+                        },
+                        resilience_scores: { overall: originalRouteResilienceScore ? originalRouteResilienceScore * 10 : 0 },
+                        // Use frontend-passed metrics
+                        time: originalRouteTime || "--",
+                        distance: originalRouteDistance || "--",
+                        cost: originalRouteCost || "--",
+                        carbon: originalRouteCarbonEmission || "--",
+                        // Also include raw values for calculations
+                        time_minutes: origTimeMinutes,
+                        distance_km: origDistanceKm,
+                        cost_inr: origCostInr,
+                        carbon_kg: origCarbonKg
+                    };
+                    log(`Using fallback originalRouteInfo with frontend data: Time=${originalRouteTime}, Distance=${originalRouteDistance}`);
+                }
+
+                const response = {
+                    routes: filteredRoutes,
+                    comparisonReport: comparisonReport,
+                    originalRoute: originalRouteInfo,
+                    isReroute: true
+                };
+
+                res.json(response);
 
             } catch (e) {
                 log(`Reroute parse error: ${e.message}`, "ERROR");
@@ -997,12 +1395,13 @@ app.listen(PORT, () => {
     const startupMessage = `Backend server started on http://localhost:${PORT}`;
     console.log(startupMessage);
     log(startupMessage);
-    log("Backend API v2.0 - Formula-Based Scoring");
+    log("Backend API v2.1 - Formula-Based Scoring with Sentiment Analysis");
     log("Endpoints:");
     log("  GET  / - API information");
     log("  GET  /geocode?city=<name> - Geocode city");
     log("  GET  /route?coordinates=<coords> - Get route");
-    log("  POST /analyze-routes - Full route analysis");
+    log("  POST /analyze-routes - Full route analysis with sentiment");
     log("  POST /rescore-routes - Priority-based re-scoring");
+    log("  POST /reroute - Calculate alternative routes");
     log("=" * 60);
 });

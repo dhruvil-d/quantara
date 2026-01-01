@@ -48,6 +48,7 @@ def get_api_key(key_name: str, default: Optional[str] = None) -> Optional[str]:
 GOOGLE_MAPS_API_KEY = "GOOGLE_MAPS_API_KEY"
 GEMINI_API_KEY = "GEMINI_API_KEY"
 OPENROUTESERVICE_API_KEY = "OPENROUTESERVICE_API_KEY"
+NEWS_API_KEY = "NEWS_API_KEY"
 
 
 def get_google_maps_key() -> Optional[str]:
@@ -64,3 +65,7 @@ def get_openrouteservice_key() -> Optional[str]:
     """Get OpenRouteService API key"""
     return get_api_key(OPENROUTESERVICE_API_KEY)
 
+
+def get_news_api_key() -> Optional[str]:
+    """Get TheNewsAPI key for news sentiment analysis"""
+    return get_api_key(NEWS_API_KEY)
