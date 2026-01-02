@@ -159,7 +159,7 @@ export default function App() {
   const [rerouteOptions, setRerouteOptions] = useState<Route[]>([]);
 
   const [isIntegrationsOpen, setIsIntegrationsOpen] = useState(false);
-  const [isDarkMode, setIsDarkMode] = useState(false);
+  const [isDarkMode, setIsDarkMode] = useState(true);
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [activeRightTab, setActiveRightTab] = useState<'stats' | 'news'>('news');
   const [priorities, setPriorities] = useState({ time: 25, distance: 25, safety: 25, carbonEmission: 25 });
@@ -170,6 +170,15 @@ export default function App() {
   const [loadingProgress, setLoadingProgress] = useState(0);
   const [osmnxEnabled, setOsmnxEnabled] = useState(false);
   const [isRerouted, setIsRerouted] = useState(false); // Track if current route is a rerouted version
+
+  // Effect to toggle global dark mode class
+  React.useEffect(() => {
+    if (isDarkMode) {
+      document.documentElement.classList.add('dark');
+    } else {
+      document.documentElement.classList.remove('dark');
+    }
+  }, [isDarkMode]);
 
   // Reroute Simulation Placeholder
   const handleSimulateReroute = () => {
@@ -540,54 +549,7 @@ export default function App() {
 
 
       {/* Header */}
-      {/* Floating Hamburger Menu */}
-      <div className="fixed top-4 right-6 z-50 flex flex-col items-end">
-        <button
-          onClick={() => setIsMenuOpen(!isMenuOpen)}
-          className={`p-2 rounded-full shadow-lg transition-transform hover:scale-105 ${isDarkMode ? 'bg-gray-800 text-gray-200' : 'bg-white text-gray-700'
-            }`}
-        >
-          {isMenuOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
-        </button>
-
-        {/* Dropdown Menu */}
-        {isMenuOpen && (
-          <div className={`mt-2 p-2 rounded-xl shadow-xl border flex flex-col gap-2 ${isDarkMode
-            ? 'bg-gray-800 border-gray-700'
-            : 'bg-white border-gray-200'
-            }`}>
-            <button
-              onClick={toggleTheme}
-              className={`flex items-center gap-3 px-3 py-2 rounded-lg transition-colors ${isDarkMode
-                ? 'hover:bg-gray-700 text-sm font-medium text-gray-200'
-                : 'hover:bg-gray-50 text-sm font-medium text-gray-700'
-                }`}
-            >
-              <div className={`w-8 h-8 rounded-full flex items-center justify-center ${isDarkMode ? 'bg-gray-700 text-yellow-400' : 'bg-gray-100 text-gray-600'
-                }`}>
-                {isDarkMode ? <Sun className="w-4 h-4" /> : <Moon className="w-4 h-4" />}
-              </div>
-              <span>{isDarkMode ? 'Light Mode' : 'Dark Mode'}</span>
-            </button>
-            <button
-              onClick={() => {
-                setView("selection");
-                setIsMenuOpen(false);
-              }}
-              className={`flex items-center gap-3 px-3 py-2 rounded-lg transition-colors ${isDarkMode
-                ? 'hover:bg-gray-700 text-sm font-medium text-gray-200'
-                : 'hover:bg-gray-50 text-sm font-medium text-gray-700'
-                }`}
-            >
-              <div className={`w-8 h-8 rounded-full flex items-center justify-center ${isDarkMode ? 'bg-gray-700 text-lime-400' : 'bg-gray-100 text-lime-600'
-                }`}>
-                <Plug className="w-4 h-4" />
-              </div>
-              <span>Change Route</span>
-            </button>
-          </div>
-        )}
-      </div>
+      {/* Floating Hamburger Menu Removed */}
 
       {/* Main Content - Resizable Panels */}
       <div className="flex-1 flex flex-col overflow-hidden">
@@ -628,20 +590,7 @@ export default function App() {
               <div className={`shrink-0 border-b px-6 py-6 ${isDarkMode ? 'border-gray-700 bg-gray-900' : 'border-gray-200 bg-white'
                 }`}>
                 <div className="flex justify-end mb-2">
-                  <label
-                    className="flex items-center gap-2 text-xs cursor-pointer"
-                    title="Enabling this option will increase accuracy but also increase the processing time"
-                  >
-                    <input
-                      type="checkbox"
-                      className="rounded border-gray-400"
-                      checked={osmnxEnabled}
-                      onChange={(e) => setOsmnxEnabled(e.target.checked)}
-                    />
-                    <span className={isDarkMode ? 'text-gray-300' : 'text-gray-700'}>
-                      Use detailed road data (OSMnx)
-                    </span>
-                  </label>
+                  {/* OSMnx option moved to hamburger menu */}
                 </div>
                 <RouteSensitivityControls
                   isDarkMode={isDarkMode}
@@ -649,6 +598,71 @@ export default function App() {
                   onRecalculate={handleRecalculate}
                   disabled={routes.length === 0 || isLoadingRoutes}
                   isRecalculating={isLoadingRoutes}
+                  headerActions={
+                    <div className="relative flex items-center">
+                      <button
+                        onClick={() => setIsMenuOpen(!isMenuOpen)}
+                        className={`p-2 rounded-full shadow-lg transition-transform hover:scale-105 ${isDarkMode ? 'bg-gray-800 text-gray-200 hover:bg-gray-700' : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                          }`}
+                      >
+                        {isMenuOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
+                      </button>
+
+                      {isMenuOpen && (
+                        <div className={`absolute right-0 top-full mt-2 w-64 p-2 rounded-xl shadow-xl border flex flex-col gap-2 z-50 ${isDarkMode
+                          ? 'bg-gray-800 border-gray-700'
+                          : 'bg-white border-gray-200'
+                          }`}>
+                          <button
+                            onClick={toggleTheme}
+                            className={`flex items-center gap-3 px-3 py-2 rounded-lg transition-colors ${isDarkMode
+                              ? 'hover:bg-gray-700 text-sm font-medium text-gray-200'
+                              : 'hover:bg-gray-50 text-sm font-medium text-gray-700'
+                              }`}
+                          >
+                            <div className={`w-8 h-8 rounded-full flex items-center justify-center ${isDarkMode ? 'bg-gray-700 text-yellow-400' : 'bg-gray-100 text-gray-600'
+                              }`}>
+                              {isDarkMode ? <Sun className="w-4 h-4" /> : <Moon className="w-4 h-4" />}
+                            </div>
+                            <span>{isDarkMode ? 'Light Mode' : 'Dark Mode'}</span>
+                          </button>
+                          <button
+                            onClick={() => {
+                              setView("selection");
+                              setIsMenuOpen(false);
+                            }}
+                            className={`flex items-center gap-3 px-3 py-2 rounded-lg transition-colors ${isDarkMode
+                              ? 'hover:bg-gray-700 text-sm font-medium text-gray-200'
+                              : 'hover:bg-gray-50 text-sm font-medium text-gray-700'
+                              }`}
+                          >
+                            <div className={`w-8 h-8 rounded-full flex items-center justify-center ${isDarkMode ? 'bg-gray-700 text-lime-400' : 'bg-gray-100 text-lime-600'
+                              }`}>
+                              <Plug className="w-4 h-4" />
+                            </div>
+                            <span>Change Route</span>
+                          </button>
+                          <label
+                            className={`flex items-center gap-3 px-3 py-2 rounded-lg transition-colors cursor-pointer ${isDarkMode
+                              ? 'hover:bg-gray-700 text-sm font-medium text-gray-200'
+                              : 'hover:bg-gray-50 text-sm font-medium text-gray-700'
+                              }`}
+                          >
+                            <div className={`w-8 h-8 rounded-full flex items-center justify-center ${isDarkMode ? 'bg-gray-700 text-blue-400' : 'bg-gray-100 text-blue-600'
+                              }`}>
+                              <input
+                                type="checkbox"
+                                className="rounded border-gray-400"
+                                checked={osmnxEnabled}
+                                onChange={(e) => setOsmnxEnabled(e.target.checked)}
+                              />
+                            </div>
+                            <span>Detailed Road Data (OSMnx)</span>
+                          </label>
+                        </div>
+                      )}
+                    </div>
+                  }
                 />
               </div>
 
@@ -656,7 +670,7 @@ export default function App() {
               <div className="flex-1 overflow-hidden">
                 <PanelGroup direction="horizontal">
                   {/* Map View */}
-                  <Panel defaultSize={75} minSize={50}>
+                  <Panel defaultSize={65} minSize={50}>
                     {selectedRoute ? (
                       <MapView
                         route={selectedRoute}
@@ -683,25 +697,33 @@ export default function App() {
                   </PanelResizeHandle>
 
                   {/* Right Sidebar */}
-                  <Panel defaultSize={25} minSize={20} maxSize={40} className={`border-l ${isDarkMode ? 'border-gray-700 bg-gray-900' : 'border-gray-200 bg-white'
+                  <Panel defaultSize={35} minSize={20} maxSize={50} className={`border-l ${isDarkMode ? 'border-gray-700 bg-gray-900' : 'border-gray-200 bg-white'
                     }`}>
                     <div className="h-full flex flex-col">
                       <div className={`p-4 border-b shrink-0 ${isDarkMode ? 'border-gray-700' : 'border-gray-200'}`}>
                         <div className={`flex p-1 rounded-full border ${isDarkMode ? 'bg-gray-800 border-gray-700' : 'bg-gray-100 border-gray-200'}`}>
                           <button
                             onClick={() => setActiveRightTab('news')}
-                            className={`flex-1 py-1.5 text-xs font-medium rounded-full transition-all ${activeRightTab === 'news'
-                              ? isDarkMode ? 'bg-lime-500 text-gray-900 shadow' : 'bg-lime-500 text-white shadow'
-                              : isDarkMode ? 'text-gray-400 hover:text-gray-300' : 'text-gray-500 hover:text-gray-700'
+                            className={`flex-1 py-1.5 text-xs font-medium rounded-full transition-all duration-300 ${activeRightTab === 'news'
+                              ? isDarkMode
+                                ? 'bg-gradient-to-r from-lime-500/80 to-lime-600/80 backdrop-blur-xl border border-white/10 shadow-[0_0_20px_rgba(132,204,22,0.3)] text-white'
+                                : 'bg-gradient-to-r from-lime-500 to-lime-600 shadow-lg text-white'
+                              : isDarkMode
+                                ? 'text-gray-400 hover:text-gray-300 hover:bg-white/5'
+                                : 'text-gray-500 hover:text-gray-700 hover:bg-gray-200/50'
                               }`}
                           >
                             Latest News
                           </button>
                           <button
                             onClick={() => setActiveRightTab('stats')}
-                            className={`flex-1 py-1.5 text-xs font-medium rounded-full transition-all ${activeRightTab === 'stats'
-                              ? isDarkMode ? 'bg-lime-500 text-gray-900 shadow' : 'bg-white text-gray-900 shadow'
-                              : isDarkMode ? 'text-gray-400 hover:text-gray-300' : 'text-gray-500 hover:text-gray-700'
+                            className={`flex-1 py-1.5 text-xs font-medium rounded-full transition-all duration-300 ${activeRightTab === 'stats'
+                              ? isDarkMode
+                                ? 'bg-gradient-to-r from-lime-500/80 to-lime-600/80 backdrop-blur-xl border border-white/10 shadow-[0_0_20px_rgba(132,204,22,0.3)] text-white'
+                                : 'bg-gradient-to-r from-lime-500 to-lime-600 shadow-lg text-white'
+                              : isDarkMode
+                                ? 'text-gray-400 hover:text-gray-300 hover:bg-white/5'
+                                : 'text-gray-500 hover:text-gray-700 hover:bg-gray-200/50'
                               }`}
                           >
                             Stats & Alerts

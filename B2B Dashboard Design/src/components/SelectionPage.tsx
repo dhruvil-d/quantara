@@ -1,6 +1,6 @@
 
 import * as React from "react";
-import { Moon, Sun, ArrowRight, MapPin } from "lucide-react";
+import { Moon, Sun, ArrowRight, MapPin, ChevronDown } from "lucide-react";
 import { useState } from "react";
 
 interface SelectionPageProps {
@@ -71,19 +71,22 @@ export function SelectionPage({ onContinue, isDarkMode, toggleTheme, osmnxEnable
                         <label className={`text-sm font-medium ${isDarkMode ? "text-gray-300" : "text-gray-700"}`}>
                             Source City
                         </label>
-                        <select
-                            value={source}
-                            onChange={handleSourceChange}
-                            className={`w-full p-3 rounded-lg border outline-none transition-all ${isDarkMode
-                                ? "bg-gray-900 border-gray-600 focus:border-lime-500 text-white"
-                                : "bg-gray-50 border-gray-200 focus:border-lime-500 text-gray-900"
-                                }`}
-                        >
-                            <option value="" disabled>Select Origin</option>
-                            {CITIES.map((city) => (
-                                <option key={city} value={city}>{city}</option>
-                            ))}
-                        </select>
+                        <div className="relative">
+                            <select
+                                value={source}
+                                onChange={handleSourceChange}
+                                className={`w-full p-3 pr-10 rounded-lg border outline-none appearance-none transition-all cursor-pointer ${isDarkMode
+                                    ? "bg-gray-900 border-gray-600 focus:border-lime-500 text-white"
+                                    : "bg-gray-50 border-gray-200 focus:border-lime-500 text-gray-900"
+                                    }`}
+                            >
+                                <option value="" disabled hidden>Select Origin</option>
+                                {CITIES.map((city) => (
+                                    <option key={city} value={city}>{city}</option>
+                                ))}
+                            </select>
+                            <ChevronDown className={`absolute right-3 top-1/2 -translate-y-1/2 w-5 h-5 pointer-events-none ${isDarkMode ? "text-gray-400" : "text-gray-500"}`} />
+                        </div>
                     </div>
 
                     {/* Destination Input */}
@@ -91,22 +94,25 @@ export function SelectionPage({ onContinue, isDarkMode, toggleTheme, osmnxEnable
                         <label className={`text-sm font-medium ${isDarkMode ? "text-gray-300" : "text-gray-700"}`}>
                             Destination City
                         </label>
-                        <select
-                            value={destination}
-                            onChange={(e) => setDestination(e.target.value)}
-                            className={`w-full p-3 rounded-lg border outline-none transition-all ${isDarkMode
-                                ? "bg-gray-900 border-gray-600 focus:border-lime-500 text-white"
-                                : "bg-gray-50 border-gray-200 focus:border-lime-500 text-gray-900"
-                                } ${!source ? "opacity-50 cursor-not-allowed" : ""}`}
-                            disabled={!source}
-                        >
-                            <option value="" disabled>
-                                {source ? "Select Destination" : "Select Source First"}
-                            </option>
-                            {availableDestinations.map((city) => (
-                                <option key={city} value={city}>{city}</option>
-                            ))}
-                        </select>
+                        <div className="relative">
+                            <select
+                                value={destination}
+                                onChange={(e) => setDestination(e.target.value)}
+                                className={`w-full p-3 pr-10 rounded-lg border outline-none appearance-none transition-all cursor-pointer ${isDarkMode
+                                    ? "bg-gray-900 border-gray-600 focus:border-lime-500 text-white"
+                                    : "bg-gray-50 border-gray-200 focus:border-lime-500 text-gray-900"
+                                    } ${!source ? "opacity-50 cursor-not-allowed" : ""}`}
+                                disabled={!source}
+                            >
+                                <option value="" disabled hidden>
+                                    {source ? "Select Destination" : "Select Source First"}
+                                </option>
+                                {availableDestinations.map((city) => (
+                                    <option key={city} value={city}>{city}</option>
+                                ))}
+                            </select>
+                            <ChevronDown className={`absolute right-3 top-1/2 -translate-y-1/2 w-5 h-5 pointer-events-none ${isDarkMode ? "text-gray-400" : "text-gray-500"}`} />
+                        </div>
                     </div>
 
                     {/* OSMnx Option */}

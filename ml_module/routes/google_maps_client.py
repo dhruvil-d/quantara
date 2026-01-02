@@ -80,8 +80,9 @@ class GoogleMapsClient:
                 return None
             
             routes = []
-            for route in data.get("routes", []):
+            for i,route in enumerate (data.get("routes", [])):
                 route_data = self._parse_route(route, data.get("geocoded_waypoints", []))
+                logger.debug(f"Route {i}: {route_data}")
                 routes.append(route_data)
             
             logger.info(f"Successfully retrieved {len(routes)} route(s)")

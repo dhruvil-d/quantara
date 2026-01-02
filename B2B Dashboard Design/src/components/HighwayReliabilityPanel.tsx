@@ -52,32 +52,31 @@ export function HighwayReliabilityPanel({ isDarkMode = false }: HighwayReliabili
 
   const getScoreBadgeColor = (score: number) => {
     if (isDarkMode) {
-      if (score >= 8) return "bg-lime-900/40 text-lime-400 border-lime-800";
-      if (score >= 6) return "bg-yellow-900/40 text-yellow-400 border-yellow-800";
-      return "bg-red-900/40 text-red-400 border-red-800";
+      if (score >= 8) return "bg-lime-900/30 text-lime-400 border-lime-800/50 backdrop-blur-sm";
+      if (score >= 6) return "bg-yellow-900/30 text-yellow-400 border-yellow-800/50 backdrop-blur-sm";
+      return "bg-red-900/30 text-red-400 border-red-800/50 backdrop-blur-sm";
     }
-    if (score >= 8) return "bg-lime-100 text-lime-700 border-lime-200";
-    if (score >= 6) return "bg-yellow-100 text-yellow-700 border-yellow-200";
-    return "bg-red-100 text-red-700 border-red-200";
+    if (score >= 8) return "bg-lime-100/80 text-lime-700 border-lime-200/50 backdrop-blur-sm";
+    if (score >= 6) return "bg-yellow-100/80 text-yellow-700 border-yellow-200/50 backdrop-blur-sm";
+    return "bg-red-100/80 text-red-700 border-red-200/50 backdrop-blur-sm";
   };
 
   const getStatusColor = (status: string) => {
     if (isDarkMode) {
-      if (status === "Stable" || status === "Low Traffic") return "bg-emerald-900/40 text-emerald-400";
-      if (status === "High Traffic Zone") return "bg-yellow-900/40 text-yellow-400";
-      return "bg-red-900/40 text-red-400";
+      if (status === "Stable" || status === "Low Traffic") return "bg-emerald-900/30 text-emerald-400 backdrop-blur-sm border border-emerald-900/50";
+      if (status === "High Traffic Zone") return "bg-yellow-900/30 text-yellow-400 backdrop-blur-sm border border-yellow-900/50";
+      return "bg-red-900/30 text-red-400 backdrop-blur-sm border border-red-900/50";
     }
-    if (status === "Stable" || status === "Low Traffic") return "bg-emerald-50 text-emerald-700";
-    if (status === "High Traffic Zone") return "bg-yellow-50 text-yellow-700";
-    return "bg-red-50 text-red-700";
+    if (status === "Stable" || status === "Low Traffic") return "bg-emerald-50/80 text-emerald-700 backdrop-blur-sm border border-emerald-100/50";
+    if (status === "High Traffic Zone") return "bg-yellow-50/80 text-yellow-700 backdrop-blur-sm border border-yellow-100/50";
+    return "bg-red-50/80 text-red-700 backdrop-blur-sm border border-red-100/50";
   };
 
   return (
-    <div className={`rounded-xl shadow-lg border ${
-      isDarkMode 
-        ? 'bg-gray-800 border-gray-700' 
-        : 'bg-white border-gray-200'
-    } p-4`}>
+    <div className={`rounded-xl shadow-lg border ${isDarkMode
+      ? 'bg-gray-800 border-gray-700'
+      : 'bg-white border-gray-200'
+      } p-4`}>
       <button
         onClick={() => setIsExpanded(!isExpanded)}
         className="w-full flex items-center justify-between mb-3 hover:opacity-70 transition-opacity"
@@ -107,11 +106,10 @@ export function HighwayReliabilityPanel({ isDarkMode = false }: HighwayReliabili
             {mockHighways.map((highway) => (
               <div
                 key={highway.id}
-                className={`p-3 rounded-lg border ${
-                  isDarkMode 
-                    ? 'bg-gray-700/50 border-gray-600' 
-                    : 'bg-gray-50 border-gray-100'
-                }`}
+                className={`p-3 rounded-lg border ${isDarkMode
+                  ? 'bg-gray-700/50 border-gray-600'
+                  : 'bg-gray-50 border-gray-100'
+                  }`}
               >
                 <div className="flex items-center justify-between mb-2">
                   <span className={isDarkMode ? 'text-white' : 'text-gray-900'}>

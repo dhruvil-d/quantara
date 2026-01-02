@@ -94,21 +94,20 @@ export function LiveNewsAlerts({ isDarkMode = false }: LiveNewsAlertsProps) {
 
   const getSeverityBg = (severity: NewsAlert["severity"]) => {
     if (isDarkMode) {
-      return severity === "high" 
-        ? "bg-red-900/20 border-red-800" 
-        : "bg-yellow-900/20 border-yellow-800";
+      return severity === "high"
+        ? "bg-red-900/30 border-red-800/50 backdrop-blur-sm"
+        : "bg-yellow-900/30 border-yellow-800/50 backdrop-blur-sm";
     }
-    return severity === "high" 
-      ? "bg-red-50 border-red-100" 
-      : "bg-yellow-50 border-yellow-100";
+    return severity === "high"
+      ? "bg-red-50/80 border-red-100/50 backdrop-blur-sm"
+      : "bg-yellow-50/80 border-yellow-100/50 backdrop-blur-sm";
   };
 
   return (
-    <div className={`rounded-xl shadow-lg border ${
-      isDarkMode 
-        ? 'bg-gray-800 border-gray-700' 
+    <div className={`rounded-xl shadow-lg border ${isDarkMode
+        ? 'bg-gray-800 border-gray-700'
         : 'bg-white border-gray-200'
-    } p-4`}>
+      } p-4`}>
       <div className="flex items-center justify-between mb-3">
         <div className="flex items-center gap-2">
           <AlertTriangle className={`w-4 h-4 ${isDarkMode ? 'text-lime-400' : 'text-lime-600'}`} />
@@ -116,9 +115,8 @@ export function LiveNewsAlerts({ isDarkMode = false }: LiveNewsAlertsProps) {
             Live Risk Alerts
           </span>
         </div>
-        <button className={`hover:opacity-70 transition-opacity ${
-          isDarkMode ? 'text-gray-400' : 'text-gray-500'
-        }`}>
+        <button className={`hover:opacity-70 transition-opacity ${isDarkMode ? 'text-gray-400' : 'text-gray-500'
+          }`}>
           <RefreshCw className="w-4 h-4" />
         </button>
       </div>
@@ -135,27 +133,24 @@ export function LiveNewsAlerts({ isDarkMode = false }: LiveNewsAlertsProps) {
                   {getCategoryIcon(alert.category)}
                 </div>
                 <div className="flex-1 min-w-0">
-                  <p className={`text-xs mb-1 ${
-                    isDarkMode ? 'text-gray-200' : 'text-gray-900'
-                  }`}>
+                  <p className={`text-xs mb-1 ${isDarkMode ? 'text-gray-200' : 'text-gray-900'
+                    }`}>
                     {alert.headline}
                   </p>
                   <div className="flex items-center justify-between">
-                    <span className={`text-xs ${
-                      isDarkMode ? 'text-gray-400' : 'text-gray-500'
-                    }`}>
+                    <span className={`text-xs ${isDarkMode ? 'text-gray-400' : 'text-gray-500'
+                      }`}>
                       {alert.timestamp}
                     </span>
                     <span
-                      className={`text-xs px-2 py-0.5 rounded ${
-                        alert.severity === "high"
-                          ? isDarkMode 
-                            ? "bg-red-900/40 text-red-400" 
+                      className={`text-xs px-2 py-0.5 rounded ${alert.severity === "high"
+                          ? isDarkMode
+                            ? "bg-red-900/40 text-red-400"
                             : "bg-red-100 text-red-700"
                           : isDarkMode
                             ? "bg-yellow-900/40 text-yellow-400"
                             : "bg-yellow-100 text-yellow-700"
-                      }`}
+                        }`}
                     >
                       {alert.severity === "high" ? "High" : "Moderate"}
                     </span>

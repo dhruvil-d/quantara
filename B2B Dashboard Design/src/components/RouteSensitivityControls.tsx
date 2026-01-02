@@ -11,14 +11,16 @@ interface RouteSensitivityControlsProps {
   onRecalculate?: (priorities: { time: number; distance: number; safety: number; carbonEmission: number }) => void;
   disabled?: boolean;
   isRecalculating?: boolean;
+  headerActions?: React.ReactNode;
 }
 
-export function RouteSensitivityControls({ 
-  isDarkMode = false, 
-  onPrioritiesChange, 
+export function RouteSensitivityControls({
+  isDarkMode = false,
+  onPrioritiesChange,
   onRecalculate,
   disabled = false,
-  isRecalculating = false
+  isRecalculating = false,
+  headerActions
 }: RouteSensitivityControlsProps) {
   const [timePriority, setTimePriority] = useState([25]);
   const [distancePriority, setDistancePriority] = useState([25]);
@@ -40,7 +42,7 @@ export function RouteSensitivityControls({
       });
       return;
     }
-    
+
     // Check if priorities have changed from initial values
     const currentPriorities = {
       time: timePriority[0],
@@ -48,15 +50,15 @@ export function RouteSensitivityControls({
       safety: safetyPriority[0],
       carbonEmission: carbonPriority[0]
     };
-    
-    const changed = 
+
+    const changed =
       currentPriorities.time !== initialPriorities.time ||
       currentPriorities.distance !== initialPriorities.distance ||
       currentPriorities.safety !== initialPriorities.safety ||
       currentPriorities.carbonEmission !== initialPriorities.carbonEmission;
-    
+
     setHasChanges(changed);
-    
+
     // Update parent with new priorities (but don't trigger recalculation)
     if (onPrioritiesChange) {
       onPrioritiesChange(currentPriorities);
@@ -78,27 +80,25 @@ export function RouteSensitivityControls({
         safety: safetyPriority[0],
         carbonEmission: carbonPriority[0]
       };
-      
+
       // Update initial priorities to current (so button disappears after recalculation)
       setInitialPriorities(currentPriorities);
       setHasChanges(false);
-      
+
       // Trigger recalculation
       onRecalculate(currentPriorities);
     }
   };
 
   return (
-    <div className={`rounded-xl shadow-lg border ${
-      isDarkMode 
-        ? 'bg-gray-800 border-gray-700' 
-        : 'bg-white border-gray-200'
-    } p-5`}>
+    <div className={`rounded-xl shadow-lg border ${isDarkMode
+      ? 'bg-gray-800 border-gray-700'
+      : 'bg-white border-gray-200'
+      } p-5`}>
       <div className="flex items-center justify-between mb-4">
         <div className="flex items-center gap-2">
-          <div className={`w-10 h-10 rounded-lg flex items-center justify-center ${
-            isDarkMode ? 'bg-lime-900/30' : 'bg-lime-100'
-          }`}>
+          <div className={`w-10 h-10 rounded-lg flex items-center justify-center ${isDarkMode ? 'bg-lime-900/30' : 'bg-lime-100'
+            }`}>
             <Gauge className={isDarkMode ? 'w-5 h-5 text-lime-400' : 'w-5 h-5 text-lime-600'} />
           </div>
           <div>
@@ -110,65 +110,66 @@ export function RouteSensitivityControls({
             </p>
           </div>
         </div>
-        <AnimatePresence>
-          {hasChanges && !isRecalculating && (
-            <motion.button
-              initial={{ opacity: 0, scale: 0.9 }}
-              animate={{ opacity: 1, scale: 1 }}
-              exit={{ opacity: 0, scale: 0.9 }}
-              onClick={handleRecalculate}
-              disabled={disabled}
-              className={`flex items-center gap-2 px-4 py-2 rounded-lg font-medium transition-all ${
-                disabled
+        <div className="flex items-center gap-3">
+          <AnimatePresence>
+            {hasChanges && !isRecalculating && (
+              <motion.button
+                initial={{ opacity: 0, scale: 0.9 }}
+                animate={{ opacity: 1, scale: 1 }}
+                exit={{ opacity: 0, scale: 0.9 }}
+                onClick={handleRecalculate}
+                disabled={disabled}
+                className={`flex items-center gap-2 px-4 py-2 rounded-lg font-medium transition-all ${disabled
                   ? isDarkMode
                     ? 'bg-gray-700 text-gray-500 cursor-not-allowed'
                     : 'bg-gray-200 text-gray-400 cursor-not-allowed'
                   : isDarkMode
-                  ? 'bg-lime-600 hover:bg-lime-500 text-white'
-                  : 'bg-lime-500 hover:bg-lime-600 text-white'
-              }`}
-            >
-              <RefreshCw className="w-4 h-4" />
-              <span className="text-sm">Recalculate</span>
-            </motion.button>
-          )}
-          {isRecalculating && (
-            <motion.div
-              initial={{ opacity: 0, scale: 0.9 }}
-              animate={{ opacity: 1, scale: 1 }}
-              exit={{ opacity: 0, scale: 0.9 }}
-              className="flex items-center gap-2"
-            >
-              <div className="flex gap-1">
-                <motion.div
-                  animate={{ opacity: [0.3, 1, 0.3] }}
-                  transition={{ duration: 1.5, repeat: Infinity, delay: 0 }}
-                  className="w-1.5 h-1.5 rounded-full bg-lime-500"
-                />
-                <motion.div
-                  animate={{ opacity: [0.3, 1, 0.3] }}
-                  transition={{ duration: 1.5, repeat: Infinity, delay: 0.2 }}
-                  className="w-1.5 h-1.5 rounded-full bg-lime-500"
-                />
-                <motion.div
-                  animate={{ opacity: [0.3, 1, 0.3] }}
-                  transition={{ duration: 1.5, repeat: Infinity, delay: 0.4 }}
-                  className="w-1.5 h-1.5 rounded-full bg-lime-500"
-                />
-              </div>
-              <span className={`text-xs ${isDarkMode ? 'text-lime-400' : 'text-lime-600'}`}>
-                Recalculating…
-              </span>
-            </motion.div>
-          )}
-        </AnimatePresence>
+                    ? 'bg-lime-600 hover:bg-lime-500 text-white'
+                    : 'bg-lime-500 hover:bg-lime-600 text-white'
+                  }`}
+              >
+                <RefreshCw className="w-4 h-4" />
+                <span className="text-sm">Recalculate</span>
+              </motion.button>
+            )}
+            {isRecalculating && (
+              <motion.div
+                initial={{ opacity: 0, scale: 0.9 }}
+                animate={{ opacity: 1, scale: 1 }}
+                exit={{ opacity: 0, scale: 0.9 }}
+                className="flex items-center gap-2"
+              >
+                <div className="flex gap-1">
+                  <motion.div
+                    animate={{ opacity: [0.3, 1, 0.3] }}
+                    transition={{ duration: 1.5, repeat: Infinity, delay: 0 }}
+                    className="w-1.5 h-1.5 rounded-full bg-lime-500"
+                  />
+                  <motion.div
+                    animate={{ opacity: [0.3, 1, 0.3] }}
+                    transition={{ duration: 1.5, repeat: Infinity, delay: 0.2 }}
+                    className="w-1.5 h-1.5 rounded-full bg-lime-500"
+                  />
+                  <motion.div
+                    animate={{ opacity: [0.3, 1, 0.3] }}
+                    transition={{ duration: 1.5, repeat: Infinity, delay: 0.4 }}
+                    className="w-1.5 h-1.5 rounded-full bg-lime-500"
+                  />
+                </div>
+                <span className={`text-xs ${isDarkMode ? 'text-lime-400' : 'text-lime-600'}`}>
+                  Recalculating...
+                </span>
+              </motion.div>
+            )}
+          </AnimatePresence>
+          {headerActions}
+        </div>
       </div>
 
       <div className="grid grid-cols-4 gap-6">
         <div>
-          <label className={`text-xs mb-2 block ${
-            isDarkMode ? 'text-gray-300' : 'text-gray-700'
-          }`}>
+          <label className={`text-xs mb-2 block ${isDarkMode ? 'text-gray-300' : 'text-gray-700'
+            }`}>
             Time Priority
           </label>
           <Slider
@@ -185,9 +186,8 @@ export function RouteSensitivityControls({
         </div>
 
         <div>
-          <label className={`text-xs mb-2 block ${
-            isDarkMode ? 'text-gray-300' : 'text-gray-700'
-          }`}>
+          <label className={`text-xs mb-2 block ${isDarkMode ? 'text-gray-300' : 'text-gray-700'
+            }`}>
             Distance Priority
           </label>
           <Slider
@@ -204,9 +204,8 @@ export function RouteSensitivityControls({
         </div>
 
         <div>
-          <label className={`text-xs mb-2 block ${
-            isDarkMode ? 'text-gray-300' : 'text-gray-700'
-          }`}>
+          <label className={`text-xs mb-2 block ${isDarkMode ? 'text-gray-300' : 'text-gray-700'
+            }`}>
             Safety Priority
           </label>
           <Slider
@@ -223,9 +222,8 @@ export function RouteSensitivityControls({
         </div>
 
         <div>
-          <label className={`text-xs mb-2 block ${
-            isDarkMode ? 'text-gray-300' : 'text-gray-700'
-          }`}>
+          <label className={`text-xs mb-2 block ${isDarkMode ? 'text-gray-300' : 'text-gray-700'
+            }`}>
             Carbon Emission Priority
           </label>
           <Slider
@@ -241,6 +239,6 @@ export function RouteSensitivityControls({
           </span>
         </div>
       </div>
-    </div>
+    </div >
   );
 }

@@ -19,7 +19,7 @@ interface NewsArticle {
     published_at: string;
 }
 
-const API_KEY = "yDS4kdTKxmeraPbux5dnkl8oqRYCDRBH57fBCLVq";
+const API_KEY = import.meta.env.VITE_NEWS_API_KEY || "yDS4kdTKxmeraPbux5dnkl8oqRYCDRBH57fBCLVq";
 const CACHE_DURATION = 60 * 60 * 1000; // 1 hour
 
 export function NewsPanel({ cities, isDarkMode = false }: NewsPanelProps) {
@@ -153,9 +153,9 @@ export function NewsPanel({ cities, isDarkMode = false }: NewsPanelProps) {
                 </div>
                 <span className={`text-xs ${isDarkMode ? 'text-gray-400' : 'text-gray-500'}`}>
                     {isLoading ? 'Updating...' : (
-                        <span className={`px-2 py-0.5 rounded-full text-[10px] font-medium ${articles.some(a => a.uuid.startsWith('mock'))
-                            ? 'bg-yellow-100 text-yellow-700 dark:bg-yellow-900/30 dark:text-yellow-400'
-                            : 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400'
+                        <span className={`px-2 py-0.5 rounded-full text-[10px] font-medium backdrop-blur-sm transition-transform hover:scale-105 ${articles.some(a => a.uuid.startsWith('mock'))
+                            ? 'bg-yellow-100/80 text-yellow-700 dark:bg-yellow-900/40 dark:text-yellow-400 border border-yellow-200/50 dark:border-yellow-700/50'
+                            : 'bg-green-100/80 text-green-700 dark:bg-green-900/40 dark:text-green-400 border border-green-200/50 dark:border-green-700/50'
                             }`}>
                             {articles.some(a => a.uuid.startsWith('mock')) ? 'Demo Data' : 'Live Feed'}
                         </span>
@@ -200,7 +200,9 @@ export function NewsPanel({ cities, isDarkMode = false }: NewsPanelProps) {
                                             {article.title}
                                         </h4>
                                         <div className="flex items-center justify-between mt-2">
-                                            <span className={`text-[10px] font-medium px-1.5 py-0.5 rounded ${isDarkMode ? 'bg-gray-800 text-gray-400' : 'bg-white text-gray-500 border border-gray-200'
+                                            <span className={`text-[10px] font-medium px-1.5 py-0.5 rounded backdrop-blur-sm border transition-transform hover:scale-105 ${isDarkMode
+                                                ? 'bg-gray-800/60 text-gray-400 border-gray-700/50'
+                                                : 'bg-white/60 text-gray-500 border-gray-200/50'
                                                 }`}>
                                                 {article.source}
                                             </span>

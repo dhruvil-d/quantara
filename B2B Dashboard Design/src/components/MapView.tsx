@@ -4,6 +4,7 @@ import { MapContainer, TileLayer, Marker, Popup, Polyline, useMap, CircleMarker 
 import L from "leaflet";
 import axios from "axios";
 import polyline from "@mapbox/polyline"; // <-- Decode GraphHopper polyline
+import { motion, AnimatePresence } from "framer-motion";
 
 import {
   Navigation,
@@ -938,9 +939,12 @@ export function MapView({ route, isDarkMode = false, onSimulate, onReroute, onRo
           </MapContainer>
 
           {/* Efficiency Score (using resilience score from ML module) */}
-          <div className="absolute top-6 left-6 flex gap-3 z-[400]">
-            <div className={`rounded-xl shadow-lg bg-white/90 dark:bg-gray-800/90 overflow-hidden transition-all ${isGeminiOutputOpen ? 'w-96' : 'w-auto'
-              }`}>
+          <div className="absolute top-6 right-6 flex gap-3 z-[400]">
+            <motion.div
+              initial={false}
+              animate={{ width: isGeminiOutputOpen ? 384 : "auto" }}
+              transition={{ duration: 0.3, ease: "easeInOut" }}
+              className={`rounded-xl shadow-lg bg-white/90 dark:bg-gray-800/90 overflow-hidden`}>
               <div className="px-4 py-3">
                 <div className="flex items-center justify-between gap-3">
                   <div className="flex items-center gap-2">
@@ -970,172 +974,182 @@ export function MapView({ route, isDarkMode = false, onSimulate, onReroute, onRo
               </div>
 
               {/* Gemini Output Dropdown */}
-              {isGeminiOutputOpen && route.geminiOutput && (
-                <div className={`border-t px-4 py-4 max-h-96 overflow-y-auto ${isDarkMode ? 'border-gray-700' : 'border-gray-200'
-                  }`}>
-                  <div className="flex items-center gap-2 mb-3">
-                    <Info className="w-4 h-4 text-lime-600 dark:text-lime-400" />
-                    <h4 className={`text-sm font-semibold ${isDarkMode ? 'text-white' : 'text-gray-900'
-                      }`}>
-                      AI Analysis Details
-                    </h4>
-                  </div>
+              <AnimatePresence>
+                {isGeminiOutputOpen && route.geminiOutput && (
+                  <motion.div
+                    key="gemini-dropdown"
+                    initial={{ height: 0, opacity: 0 }}
+                    animate={{ height: "auto", opacity: 1 }}
+                    exit={{ height: 0, opacity: 0 }}
+                    transition={{ duration: 0.3, ease: "easeInOut" }}
+                    className={`border-t px-4 overflow-hidden ${isDarkMode ? 'border-gray-700' : 'border-gray-200'}`}
+                  >
+                    <div className="py-4 max-h-96 overflow-y-auto custom-scrollbar w-[22rem]">
+                      <div className="flex items-center gap-2 mb-3">
+                        <Info className="w-4 h-4 text-lime-600 dark:text-lime-400" />
+                        <h4 className={`text-sm font-semibold ${isDarkMode ? 'text-white' : 'text-gray-900'
+                          }`}>
+                          AI Analysis Details
+                        </h4>
+                      </div>
 
-                  {/* Summary */}
-                  <div className="mb-4">
-                    <div className={`text-xs font-medium mb-1 ${isDarkMode ? 'text-gray-400' : 'text-gray-500'
-                      }`}>
-                      Summary
-                    </div>
-                    <div className={`text-sm ${isDarkMode ? 'text-gray-300' : 'text-gray-700'
-                      }`}>
-                      {route.geminiOutput.short_summary}
-                    </div>
-                  </div>
+                      {/* Summary */}
+                      <div className="mb-4">
+                        <div className={`text-xs font-medium mb-1 ${isDarkMode ? 'text-gray-400' : 'text-gray-500'
+                          }`}>
+                          Summary
+                        </div>
+                        <div className={`text-sm ${isDarkMode ? 'text-gray-300' : 'text-gray-700'
+                          }`}>
+                          {route.geminiOutput.short_summary}
+                        </div>
+                      </div>
 
-                  {/* Reasoning */}
-                  <div className="mb-4">
-                    <div className={`text-xs font-medium mb-1 ${isDarkMode ? 'text-gray-400' : 'text-gray-500'
-                      }`}>
-                      Reasoning
-                    </div>
-                    <div className={`text-sm ${isDarkMode ? 'text-gray-300' : 'text-gray-700'
-                      }`}>
-                      {route.geminiOutput.reasoning}
-                    </div>
-                  </div>
+                      {/* Reasoning */}
+                      <div className="mb-4">
+                        <div className={`text-xs font-medium mb-1 ${isDarkMode ? 'text-gray-400' : 'text-gray-500'
+                          }`}>
+                          Reasoning
+                        </div>
+                        <div className={`text-sm ${isDarkMode ? 'text-gray-300' : 'text-gray-700'
+                          }`}>
+                          {route.geminiOutput.reasoning}
+                        </div>
+                      </div>
 
-                  {/* Detailed Scores */}
-                  <div>
-                    <div className={`text-xs font-medium mb-2 ${isDarkMode ? 'text-gray-400' : 'text-gray-500'
-                      }`}>
-                      Detailed Scores (0-100)
-                    </div>
-                    <div className="space-y-2">
-                      {/* Weather Risk Score */}
+                      {/* Detailed Scores */}
                       <div>
-                        <div className="flex justify-between items-center mb-1">
-                          <span className={`text-xs ${isDarkMode ? 'text-gray-400' : 'text-gray-600'
-                            }`}>
-                            Weather Risk
-                          </span>
-                          <span className={`text-sm font-semibold ${route.geminiOutput.weather_risk_score > 70
-                            ? 'text-red-500'
-                            : route.geminiOutput.weather_risk_score > 40
-                              ? 'text-yellow-500'
-                              : 'text-green-500'
-                            }`}>
-                            {route.geminiOutput.weather_risk_score}
-                          </span>
-                        </div>
-                        <div className={`h-1.5 rounded-full overflow-hidden ${isDarkMode ? 'bg-gray-700' : 'bg-gray-200'
+                        <div className={`text-xs font-medium mb-2 ${isDarkMode ? 'text-gray-400' : 'text-gray-500'
                           }`}>
-                          <div
-                            className={`h-full ${route.geminiOutput.weather_risk_score > 70
-                              ? 'bg-red-500'
-                              : route.geminiOutput.weather_risk_score > 40
-                                ? 'bg-yellow-500'
-                                : 'bg-green-500'
-                              }`}
-                            style={{ width: `${route.geminiOutput.weather_risk_score}%` }}
-                          />
+                          Detailed Scores (0-100)
                         </div>
-                      </div>
+                        <div className="space-y-2">
+                          {/* Weather Risk Score */}
+                          <div>
+                            <div className="flex justify-between items-center mb-1">
+                              <span className={`text-xs ${isDarkMode ? 'text-gray-400' : 'text-gray-600'
+                                }`}>
+                                Weather Risk
+                              </span>
+                              <span className={`text-sm font-semibold ${route.geminiOutput.weather_risk_score > 70
+                                ? 'text-red-500'
+                                : route.geminiOutput.weather_risk_score > 40
+                                  ? 'text-yellow-500'
+                                  : 'text-green-500'
+                                }`}>
+                                {route.geminiOutput.weather_risk_score}
+                              </span>
+                            </div>
+                            <div className={`h-1.5 rounded-full overflow-hidden ${isDarkMode ? 'bg-gray-700' : 'bg-gray-200'
+                              }`}>
+                              <div
+                                className={`h-full ${route.geminiOutput.weather_risk_score > 70
+                                  ? 'bg-red-500'
+                                  : route.geminiOutput.weather_risk_score > 40
+                                    ? 'bg-yellow-500'
+                                    : 'bg-green-500'
+                                  }`}
+                                style={{ width: `${route.geminiOutput.weather_risk_score}%` }}
+                              />
+                            </div>
+                          </div>
 
-                      {/* Road Safety Score */}
-                      <div>
-                        <div className="flex justify-between items-center mb-1">
-                          <span className={`text-xs ${isDarkMode ? 'text-gray-400' : 'text-gray-600'
-                            }`}>
-                            Road Safety
-                          </span>
-                          <span className={`text-sm font-semibold ${route.geminiOutput.road_safety_score > 70
-                            ? 'text-green-500'
-                            : route.geminiOutput.road_safety_score > 40
-                              ? 'text-yellow-500'
-                              : 'text-red-500'
-                            }`}>
-                            {route.geminiOutput.road_safety_score}
-                          </span>
-                        </div>
-                        <div className={`h-1.5 rounded-full overflow-hidden ${isDarkMode ? 'bg-gray-700' : 'bg-gray-200'
-                          }`}>
-                          <div
-                            className={`h-full ${route.geminiOutput.road_safety_score > 70
-                              ? 'bg-green-500'
-                              : route.geminiOutput.road_safety_score > 40
-                                ? 'bg-yellow-500'
-                                : 'bg-red-500'
-                              }`}
-                            style={{ width: `${route.geminiOutput.road_safety_score}%` }}
-                          />
-                        </div>
-                      </div>
+                          {/* Road Safety Score */}
+                          <div>
+                            <div className="flex justify-between items-center mb-1">
+                              <span className={`text-xs ${isDarkMode ? 'text-gray-400' : 'text-gray-600'
+                                }`}>
+                                Road Safety
+                              </span>
+                              <span className={`text-sm font-semibold ${route.geminiOutput.road_safety_score > 70
+                                ? 'text-green-500'
+                                : route.geminiOutput.road_safety_score > 40
+                                  ? 'text-yellow-500'
+                                  : 'text-red-500'
+                                }`}>
+                                {route.geminiOutput.road_safety_score}
+                              </span>
+                            </div>
+                            <div className={`h-1.5 rounded-full overflow-hidden ${isDarkMode ? 'bg-gray-700' : 'bg-gray-200'
+                              }`}>
+                              <div
+                                className={`h-full ${route.geminiOutput.road_safety_score > 70
+                                  ? 'bg-green-500'
+                                  : route.geminiOutput.road_safety_score > 40
+                                    ? 'bg-yellow-500'
+                                    : 'bg-red-500'
+                                  }`}
+                                style={{ width: `${route.geminiOutput.road_safety_score}%` }}
+                              />
+                            </div>
+                          </div>
 
-                      {/* Carbon Emission Score */}
-                      <div>
-                        <div className="flex justify-between items-center mb-1">
-                          <span className={`text-xs ${isDarkMode ? 'text-gray-400' : 'text-gray-600'
-                            }`}>
-                            Carbon Efficiency
-                          </span>
-                          <span className={`text-sm font-semibold ${(route.geminiOutput.carbon_score || 0) > 70
-                            ? 'text-green-500'
-                            : (route.geminiOutput.carbon_score || 0) > 40
-                              ? 'text-yellow-500'
-                              : 'text-red-500'
-                            }`}>
-                            {route.geminiOutput.carbon_score || 0}
-                          </span>
-                        </div>
-                        <div className={`h-1.5 rounded-full overflow-hidden ${isDarkMode ? 'bg-gray-700' : 'bg-gray-200'
-                          }`}>
-                          <div
-                            className={`h-full ${(route.geminiOutput.carbon_score || 0) > 70
-                              ? 'bg-green-500'
-                              : (route.geminiOutput.carbon_score || 0) > 40
-                                ? 'bg-yellow-500'
-                                : 'bg-red-500'
-                              }`}
-                            style={{ width: `${route.geminiOutput.carbon_score || 0}%` }}
-                          />
-                        </div>
-                      </div>
+                          {/* Carbon Emission Score */}
+                          <div>
+                            <div className="flex justify-between items-center mb-1">
+                              <span className={`text-xs ${isDarkMode ? 'text-gray-400' : 'text-gray-600'
+                                }`}>
+                                Carbon Efficiency
+                              </span>
+                              <span className={`text-sm font-semibold ${(route.geminiOutput.carbon_score || 0) > 70
+                                ? 'text-green-500'
+                                : (route.geminiOutput.carbon_score || 0) > 40
+                                  ? 'text-yellow-500'
+                                  : 'text-red-500'
+                                }`}>
+                                {route.geminiOutput.carbon_score || 0}
+                              </span>
+                            </div>
+                            <div className={`h-1.5 rounded-full overflow-hidden ${isDarkMode ? 'bg-gray-700' : 'bg-gray-200'
+                              }`}>
+                              <div
+                                className={`h-full ${(route.geminiOutput.carbon_score || 0) > 70
+                                  ? 'bg-green-500'
+                                  : (route.geminiOutput.carbon_score || 0) > 40
+                                    ? 'bg-yellow-500'
+                                    : 'bg-red-500'
+                                  }`}
+                                style={{ width: `${route.geminiOutput.carbon_score || 0}%` }}
+                              />
+                            </div>
+                          </div>
 
-                      {/* Overall Resilience Score */}
-                      <div className="pt-2 border-t border-gray-300 dark:border-gray-700">
-                        <div className="flex justify-between items-center mb-1">
-                          <span className={`text-xs font-semibold ${isDarkMode ? 'text-gray-300' : 'text-gray-700'
-                            }`}>
-                            Overall Resilience
-                          </span>
-                          <span className={`text-sm font-bold ${route.geminiOutput.overall_resilience_score > 70
-                            ? 'text-lime-500'
-                            : route.geminiOutput.overall_resilience_score > 40
-                              ? 'text-yellow-500'
-                              : 'text-red-500'
-                            }`}>
-                            {route.geminiOutput.overall_resilience_score}
-                          </span>
-                        </div>
-                        <div className={`h-2 rounded-full overflow-hidden ${isDarkMode ? 'bg-gray-700' : 'bg-gray-200'
-                          }`}>
-                          <div
-                            className={`h-full ${route.geminiOutput.overall_resilience_score > 70
-                              ? 'bg-lime-500'
-                              : route.geminiOutput.overall_resilience_score > 40
-                                ? 'bg-yellow-500'
-                                : 'bg-red-500'
-                              }`}
-                            style={{ width: `${route.geminiOutput.overall_resilience_score}%` }}
-                          />
+                          {/* Overall Resilience Score */}
+                          <div className="pt-2 border-t border-gray-300 dark:border-gray-700">
+                            <div className="flex justify-between items-center mb-1">
+                              <span className={`text-xs font-semibold ${isDarkMode ? 'text-gray-300' : 'text-gray-700'
+                                }`}>
+                                Overall Resilience
+                              </span>
+                              <span className={`text-sm font-bold ${route.geminiOutput.overall_resilience_score > 70
+                                ? 'text-lime-500'
+                                : route.geminiOutput.overall_resilience_score > 40
+                                  ? 'text-yellow-500'
+                                  : 'text-red-500'
+                                }`}>
+                                {route.geminiOutput.overall_resilience_score}
+                              </span>
+                            </div>
+                            <div className={`h-2 rounded-full overflow-hidden ${isDarkMode ? 'bg-gray-700' : 'bg-gray-200'
+                              }`}>
+                              <div
+                                className={`h-full ${route.geminiOutput.overall_resilience_score > 70
+                                  ? 'bg-lime-500'
+                                  : route.geminiOutput.overall_resilience_score > 40
+                                    ? 'bg-yellow-500'
+                                    : 'bg-red-500'
+                                  }`}
+                                style={{ width: `${route.geminiOutput.overall_resilience_score}%` }}
+                              />
+                            </div>
+                          </div>
                         </div>
                       </div>
                     </div>
-                  </div>
-                </div>
-              )}
-            </div>
+                  </motion.div>
+                )}
+              </AnimatePresence>
+            </motion.div>
           </div>
         </div>
 
@@ -1185,9 +1199,9 @@ export function MapView({ route, isDarkMode = false, onSimulate, onReroute, onRo
             {simulationCompleted && isReroute ? (
               <button
                 onClick={() => setShowReportModal(true)}
-                className={`px-6 py-2.5 rounded-lg transition-colors flex items-center gap-2 ${isDarkMode
-                  ? 'bg-indigo-500 hover:bg-indigo-400 text-white'
-                  : 'bg-indigo-600 hover:bg-indigo-700 text-white'
+                className={`px-6 py-2.5 rounded-lg transition-all duration-300 transform hover:scale-105 active:scale-95 flex items-center gap-2 backdrop-blur-xl border-2 shadow-2xl ${isDarkMode
+                  ? 'bg-gradient-to-r from-indigo-500/80 to-indigo-600/80 border-white/20 shadow-indigo-500/30 text-white'
+                  : 'bg-gradient-to-r from-indigo-600/90 to-indigo-700/90 border-white/40 shadow-indigo-600/30 text-white'
                   }`}
               >
                 <FileText className="w-4 h-4" />
@@ -1197,9 +1211,11 @@ export function MapView({ route, isDarkMode = false, onSimulate, onReroute, onRo
               <button
                 onClick={handleSimulate}
                 disabled={isSimulating || isReroute}
-                className={`px-6 py-2.5 text-white rounded-lg transition-colors ${isSimulating || isReroute
-                  ? isDarkMode ? 'bg-gray-600 cursor-not-allowed' : 'bg-gray-400 cursor-not-allowed'
-                  : isDarkMode ? 'bg-lime-600 hover:bg-lime-500' : 'bg-lime-500 hover:bg-lime-600'
+                className={`px-6 py-2.5 rounded-lg transition-all duration-300 transform hover:scale-105 active:scale-95 backdrop-blur-xl border-2 shadow-2xl ${isSimulating || isReroute
+                  ? isDarkMode ? 'bg-gray-600/50 border-gray-500/50 cursor-not-allowed text-gray-400' : 'bg-gray-400/50 border-gray-300/50 cursor-not-allowed text-gray-200'
+                  : isDarkMode
+                    ? 'bg-gradient-to-r from-lime-500/80 to-lime-600/80 border-white/20 shadow-lime-500/30 text-white'
+                    : 'bg-gradient-to-r from-lime-500/90 to-lime-600/90 border-white/40 shadow-lime-600/30 text-white'
                   }`}
               >
                 <TrendingUp className="w-4 h-4 inline mr-2" />
@@ -1208,17 +1224,17 @@ export function MapView({ route, isDarkMode = false, onSimulate, onReroute, onRo
             )}
           </div>
         </div>
-      </div>
 
-      {/* Report Modal */}
-      <ReportModal
-        isOpen={showReportModal}
-        onClose={() => setShowReportModal(false)}
-        comparisonReport={comparisonReport}
-        originalRoute={originalRouteData}
-        newRoute={selectedRerouteData}
-        isDarkMode={isDarkMode}
-      />
+        {/* Report Modal */}
+        <ReportModal
+          isOpen={showReportModal}
+          onClose={() => setShowReportModal(false)}
+          comparisonReport={comparisonReport}
+          originalRoute={originalRouteData}
+          newRoute={selectedRerouteData}
+          isDarkMode={isDarkMode}
+        />
+      </div>
     </div>
   );
 }

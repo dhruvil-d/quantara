@@ -16,13 +16,13 @@ interface RouteCardProps {
 export function RouteCard({ route, isSelected, onClick, isDarkMode = false, originalOrigin, isRerouted = false }: RouteCardProps) {
   const getResilienceBadgeColor = (score: number) => {
     if (isDarkMode) {
-      if (score >= 8) return "bg-lime-900/40 text-lime-400 border-lime-800";
-      if (score >= 6) return "bg-yellow-900/40 text-yellow-400 border-yellow-800";
-      return "bg-red-900/40 text-red-400 border-red-800";
+      if (score >= 8) return "bg-lime-900/30 text-lime-400 border-lime-800/50 backdrop-blur-sm shadow-lime-900/20";
+      if (score >= 6) return "bg-yellow-900/30 text-yellow-400 border-yellow-800/50 backdrop-blur-sm shadow-yellow-900/20";
+      return "bg-red-900/30 text-red-400 border-red-800/50 backdrop-blur-sm shadow-red-900/20";
     }
-    if (score >= 8) return "bg-lime-100 text-lime-700 border-lime-200";
-    if (score >= 6) return "bg-yellow-100 text-yellow-700 border-yellow-200";
-    return "bg-red-100 text-red-700 border-red-200";
+    if (score >= 8) return "bg-lime-100/80 text-lime-700 border-lime-200/50 backdrop-blur-sm";
+    if (score >= 6) return "bg-yellow-100/80 text-yellow-700 border-yellow-200/50 backdrop-blur-sm";
+    return "bg-red-100/80 text-red-700 border-red-200/50 backdrop-blur-sm";
   };
 
   const getStatusBadgeColor = (status: Route["status"]) => {
@@ -52,8 +52,16 @@ export function RouteCard({ route, isSelected, onClick, isDarkMode = false, orig
       onClick={onClick}
       className={`w-full text-left p-4 rounded-xl border-2 transition-all hover:shadow-md ${isSelected
         ? isDarkMode
-          ? "border-lime-500 bg-lime-900/20 shadow-md"
-          : "border-lime-500 bg-lime-50 shadow-md"
+          ? route.resilienceScore >= 8
+            ? "border-lime-500 bg-lime-900/20 shadow-md"
+            : route.resilienceScore >= 6
+              ? "border-yellow-500 bg-yellow-900/20 shadow-md"
+              : "border-red-500 bg-red-900/20 shadow-md"
+          : route.resilienceScore >= 8
+            ? "border-lime-500 bg-lime-50 shadow-md"
+            : route.resilienceScore >= 6
+              ? "border-yellow-500 bg-yellow-50 shadow-md"
+              : "border-red-500 bg-red-50 shadow-md"
         : isDarkMode
           ? "border-gray-600 bg-gray-700 hover:border-gray-500"
           : "border-gray-200 bg-white hover:border-gray-300"

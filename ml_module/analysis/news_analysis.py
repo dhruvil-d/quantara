@@ -149,10 +149,18 @@ def _fetch_from_api(
         "published_after": published_after
     }
     
-    response = requests.get(NEWS_API_BASE_URL, params=params, timeout=10)
-    response.raise_for_status()
-    
-    data = response.json()
+    try:
+        response = requests.get(NEWS_API_BASE_URL, params=params, timeout=10)
+        
+        if response.status_code == 401:
+            logger.warning(f"News API unauthorized (401). Key ending in ...{api_key[-5:] if api_key and len(api_key)>5 else '****'} invalid.")
+            return []
+            
+        response.raise_for_status()
+        data = response.json()
+    except Exception as e:
+        logger.warning(f"News API request failed: {e}")
+        return []
     articles_data = data.get("data", [])
     
     return [

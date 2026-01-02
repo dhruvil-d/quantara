@@ -46,30 +46,30 @@ export function RouteList({ routes, selectedRoute, onSelectRoute, isDarkMode = f
             }`}>
             <TabsTrigger
               value="recommended"
-              className={`flex-1 rounded-full transition-all ${isDarkMode
-                ? 'data-[state=active]:bg-lime-500 data-[state=active]:text-gray-900'
-                : 'data-[state=active]:bg-lime-500 data-[state=active]:text-white'
+              className={`flex-1 rounded-full transition-all duration-300 ${isDarkMode
+                ? 'data-[state=active]:bg-gradient-to-r data-[state=active]:from-lime-500/80 data-[state=active]:to-lime-600/80 data-[state=active]:backdrop-blur-xl data-[state=active]:border data-[state=active]:border-white/10 data-[state=active]:shadow-[0_0_20px_rgba(132,204,22,0.3)] data-[state=active]:text-white'
+                : 'data-[state=active]:bg-gradient-to-r data-[state=active]:from-lime-500 data-[state=active]:to-lime-600 data-[state=active]:shadow-lg data-[state=active]:text-white'
                 }`}
             >
               Recommended
-              <span className={`ml-2 px-2 py-0.5 rounded-full text-xs ${isDarkMode
-                ? 'bg-gray-900/20 text-current'
-                : 'bg-white/20 text-current'
+              <span className={`ml-2 px-2 py-0.5 rounded-full text-xs transition-transform group-hover:scale-105 ${isDarkMode
+                ? 'bg-black/20 text-white backdrop-blur-sm'
+                : 'bg-white/20 data-[state=inactive]:bg-gray-200 data-[state=inactive]:text-gray-600'
                 }`}>
                 {recommendedRoutes.length}
               </span>
             </TabsTrigger>
             <TabsTrigger
               value="evaluated"
-              className={`flex-1 rounded-full transition-all ${isDarkMode
-                ? 'data-[state=active]:bg-lime-500 data-[state=active]:text-gray-900'
-                : 'data-[state=active]:bg-lime-500 data-[state=active]:text-white'
+              className={`flex-1 rounded-full transition-all duration-300 ${isDarkMode
+                ? 'data-[state=active]:bg-gradient-to-r data-[state=active]:from-lime-500/80 data-[state=active]:to-lime-600/80 data-[state=active]:backdrop-blur-xl data-[state=active]:border data-[state=active]:border-white/10 data-[state=active]:shadow-[0_0_20px_rgba(132,204,22,0.3)] data-[state=active]:text-white'
+                : 'data-[state=active]:bg-gradient-to-r data-[state=active]:from-lime-500 data-[state=active]:to-lime-600 data-[state=active]:shadow-lg data-[state=active]:text-white'
                 }`}
             >
               Evaluated
-              <span className={`ml-2 px-2 py-0.5 rounded-full text-xs ${isDarkMode
-                ? 'bg-gray-900/20 text-current'
-                : 'bg-white/20 text-current'
+              <span className={`ml-2 px-2 py-0.5 rounded-full text-xs transition-transform group-hover:scale-105 ${isDarkMode
+                ? 'bg-black/20 text-white backdrop-blur-sm'
+                : 'bg-white/20 data-[state=inactive]:bg-gray-200 data-[state=inactive]:text-gray-600'
                 }`}>
                 {evaluatedRoutes.length}
               </span>
