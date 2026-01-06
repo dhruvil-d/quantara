@@ -46,10 +46,20 @@ export function SelectionPage({ onContinue, isDarkMode, toggleTheme, osmnxEnable
             <div className="absolute top-6 right-6">
                 <button
                     onClick={toggleTheme}
-                    className={`p-3 rounded-full shadow-lg transition-transform hover:scale-105 ${isDarkMode ? "bg-gray-800 text-yellow-400" : "bg-white text-gray-600"
+                    className={`p-3 rounded-full shadow-lg transition-transform hover:scale-105 mr-2 ${isDarkMode ? "bg-gray-800 text-yellow-400" : "bg-white text-gray-600"
                         }`}
                 >
                     {isDarkMode ? <Sun className="w-5 h-5" /> : <Moon className="w-5 h-5" />}
+                </button>
+                <button
+                    onClick={() => {
+                        localStorage.removeItem("token");
+                        localStorage.removeItem("userName");
+                        window.location.reload();
+                    }}
+                    className={`px-4 py-2 rounded-lg shadow-lg font-bold transition-transform hover:scale-105 ${isDarkMode ? "bg-lime-600 text-white" : "bg-lime-500 text-white"}`}
+                >
+                    Logout
                 </button>
             </div>
 
@@ -59,11 +69,15 @@ export function SelectionPage({ onContinue, isDarkMode, toggleTheme, osmnxEnable
                     <div className={`mx-auto w-16 h-16 rounded-full flex items-center justify-center mb-4 ${isDarkMode ? "bg-lime-500/20 text-lime-400" : "bg-lime-100 text-lime-600"}`}>
                         <MapPin className="w-8 h-8" />
                     </div>
-                    <h1 className="text-3xl font-bold mb-2">Plan Your Route</h1>
+                    {/* Retrieve name from localStorage */}
+                    <h1 className="text-3xl font-bold mb-2">
+                        Welcome, {localStorage.getItem("userName")?.split(" ")[0] || "User"}
+                    </h1>
                     <p className={`text-sm ${isDarkMode ? "text-gray-400" : "text-gray-500"}`}>
                         Select your origin and destination to get started
                     </p>
                 </div>
+
 
                 <div className="space-y-6">
                     {/* Source Input */}

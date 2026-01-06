@@ -11,10 +11,9 @@ interface RouteCardProps {
   isDarkMode?: boolean;
   originalOrigin?: string; // Original trip origin for rerouted cards
   isRerouted?: boolean; // Whether this card is showing a rerouted route
-  onChatClick: (e: React.MouseEvent) => void;
 }
 
-export function RouteCard({ route, isSelected, onClick, onChatClick, isDarkMode = false, originalOrigin, isRerouted = false }: RouteCardProps) {
+export function RouteCard({ route, isSelected, onClick, isDarkMode = false, originalOrigin, isRerouted = false }: RouteCardProps) {
   const getResilienceBadgeColor = (score: number) => {
     if (isDarkMode) {
       if (score >= 8) return "bg-lime-900/30 text-lime-400 border-lime-800/50 backdrop-blur-sm shadow-lime-900/20";
@@ -177,15 +176,10 @@ export function RouteCard({ route, isSelected, onClick, onChatClick, isDarkMode 
             }`}>
             <Phone className={`w-3.5 h-3.5 ${isDarkMode ? 'text-gray-300' : 'text-gray-600'}`} />
           </button>
-          <button
-            onClick={(e) => {
-              e.stopPropagation();
-              onChatClick(e);
-            }}
-            className={`w-7 h-7 rounded-full flex items-center justify-center transition-colors ${isDarkMode
-              ? 'bg-gray-600 hover:bg-gray-500'
-              : 'bg-gray-100 hover:bg-gray-200'
-              }`}>
+          <button className={`w-7 h-7 rounded-full flex items-center justify-center transition-colors ${isDarkMode
+            ? 'bg-gray-600 hover:bg-gray-500'
+            : 'bg-gray-100 hover:bg-gray-200'
+            }`}>
             <MessageCircle className={`w-3.5 h-3.5 ${isDarkMode ? 'text-gray-300' : 'text-gray-600'}`} />
           </button>
         </div>

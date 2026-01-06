@@ -1,4 +1,3 @@
-
 import * as React from "react";
 
 import { Route } from "../App";
@@ -9,13 +8,12 @@ interface RouteListProps {
   routes: Route[];
   selectedRoute: Route;
   onSelectRoute: (route: Route) => void;
-  onChatClick: (route: Route) => void;
   isDarkMode?: boolean;
   originalOrigin?: string; // Original trip origin for rerouted routes
   isRerouted?: boolean; // Whether we're displaying a rerouted route
 }
 
-export function RouteList({ routes, selectedRoute, onSelectRoute, onChatClick, isDarkMode = false, originalOrigin, isRerouted = false }: RouteListProps) {
+export function RouteList({ routes, selectedRoute, onSelectRoute, isDarkMode = false, originalOrigin, isRerouted = false }: RouteListProps) {
   // Routes with resilience score > 8 are recommended (sorted by efficiency/score descending)
   // Routes with resilience score > 8 are recommended (sorted by efficiency/score descending)
   // Fallback: If no routes > 8, recommend the single best route available
@@ -88,7 +86,6 @@ export function RouteList({ routes, selectedRoute, onSelectRoute, onChatClick, i
                   route={route}
                   isSelected={selectedRoute?.id === route.id}
                   onClick={() => onSelectRoute(route)}
-                  onChatClick={(e: React.MouseEvent) => onChatClick(route)}
                   isDarkMode={isDarkMode}
                   originalOrigin={originalOrigin}
                   isRerouted={isRerouted}
@@ -112,7 +109,6 @@ export function RouteList({ routes, selectedRoute, onSelectRoute, onChatClick, i
                   route={route}
                   isSelected={selectedRoute?.id === route.id}
                   onClick={() => onSelectRoute(route)}
-                  onChatClick={(e: React.MouseEvent) => onChatClick(route)}
                   isDarkMode={isDarkMode}
                   originalOrigin={originalOrigin}
                   isRerouted={isRerouted}

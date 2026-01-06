@@ -10,9 +10,9 @@ import { SelectionPage } from "./components/SelectionPage";
 import { LoadingOverlay } from "./components/LoadingOverlay";
 import RerouteSelection from "./components/RerouteSelection";
 import { useState } from "react";
-import { Plug, Moon, Sun, GripVertical, GripHorizontal, Menu, X } from "lucide-react";
+import { Plug, Moon, Sun, GripVertical, GripHorizontal, Menu, X, LogOut } from "lucide-react";
 import { Panel, PanelGroup, PanelResizeHandle } from "react-resizable-panels";
-import { ChatWidget } from "./components/ChatWidget";
+import AuthWrapper from "./components/AuthWrapper";
 
 export interface Route {
   id: string;
@@ -52,7 +52,6 @@ export interface Route {
     short_summary: string;
     reasoning: string;
   } | null;
-  analysisData?: any; // For Chatbot context
 }
 
 const mockRoutes: Route[] = [
@@ -172,15 +171,6 @@ export default function App() {
   const [loadingProgress, setLoadingProgress] = useState(0);
   const [osmnxEnabled, setOsmnxEnabled] = useState(false);
   const [isRerouted, setIsRerouted] = useState(false); // Track if current route is a rerouted version
-
-  // Chat State
-  const [isChatOpen, setIsChatOpen] = useState(false);
-  const [chatRoute, setChatRoute] = useState<Route | null>(null);
-
-  const handleChatClick = (route: Route) => {
-    setChatRoute(route);
-    setIsChatOpen(true);
-  };
 
   // Effect to toggle global dark mode class
   React.useEffect(() => {
@@ -527,262 +517,266 @@ export default function App() {
 
   const toggleTheme = () => setIsDarkMode(!isDarkMode);
 
-  if (view === "selection") {
-    return (
-      <SelectionPage
-        onContinue={handleSelection}
-        isDarkMode={isDarkMode}
-        toggleTheme={toggleTheme}
-        osmnxEnabled={osmnxEnabled}
-        onToggleOsmnx={setOsmnxEnabled}
-      />
-    );
-  }
 
-  if (view === "reroute_selection") {
-    return (
-      <RerouteSelection
-        routes={rerouteOptions}
-        onContinue={handleRerouteConfirm}
-      />
-    );
-  }
 
   return (
-    <div className={`h-screen flex flex-col overflow-hidden ${isDarkMode ? 'bg-gray-900' : 'bg-white'}`}>
-      {/* Loading Overlay */}
-      <LoadingOverlay
-        isVisible={isLoadingRoutes}
-        progress={loadingProgress}
-        logs={loadingLogs}
-        isDarkMode={isDarkMode}
-      />
+    <AuthWrapper>
+      {view === "selection" ? (
+        <SelectionPage
+          onContinue={handleSelection}
+          isDarkMode={isDarkMode}
+          toggleTheme={toggleTheme}
+          osmnxEnabled={osmnxEnabled}
+          onToggleOsmnx={setOsmnxEnabled}
+        />
+      ) : view === "reroute_selection" ? (
+        <RerouteSelection
+          routes={rerouteOptions}
+          onContinue={handleRerouteConfirm}
+        />
+      ) : (
+        <div className={`h-screen flex flex-col overflow-hidden ${isDarkMode ? 'bg-gray-900' : 'bg-white'}`}>
+          {/* Loading Overlay */}
+          <LoadingOverlay
+            isVisible={isLoadingRoutes}
+            progress={loadingProgress}
+            logs={loadingLogs}
+            isDarkMode={isDarkMode}
+          />
 
 
-      {/* Header */}
-      {/* Floating Hamburger Menu Removed */}
-
-      {/* Main Content - Resizable Panels */}
-      <div className="flex-1 flex flex-col overflow-hidden">
-        <PanelGroup direction="horizontal">
-          {/* Left Sidebar - Route Cards */}
-          <Panel defaultSize={25} minSize={20} maxSize={40} className={`border-r ${isDarkMode ? 'border-gray-700 bg-gray-800' : 'border-gray-200 bg-gray-50'
-            }`}>
-            <div className="h-full overflow-y-auto">
-              {routes.length > 0 && selectedRoute ? (
-                <RouteList
-                  routes={routes}
-                  selectedRoute={selectedRoute}
-                  onSelectRoute={setSelectedRoute}
-                  onChatClick={handleChatClick}
-                  isDarkMode={isDarkMode}
-                  originalOrigin={isRerouted ? sourceCity : undefined}
-                  isRerouted={isRerouted}
-                />
-              ) : (
-                <div className="flex items-center justify-center h-full">
-                  <div className={`text-center ${isDarkMode ? 'text-gray-400' : 'text-gray-500'}`}>
-                    <p className="text-lg mb-2">No routes available</p>
-                    <p className="text-sm">Select origin and destination to analyze routes</p>
-                  </div>
-                </div>
-              )}
-            </div>
-          </Panel>
-
-          <PanelResizeHandle className={`w-1 hover:bg-lime-500 transition-colors flex items-center justify-center ${isDarkMode ? 'bg-gray-700' : 'bg-gray-200'
-            }`}>
-            <GripVertical className="w-3 h-3 text-gray-400" />
-          </PanelResizeHandle>
-
-          {/* Center + Right Area */}
-          <Panel>
-            <div className="h-full flex flex-col">
-              {/* Top Panel - Sensitivity Controls (Fixed Height) */}
-              <div className={`shrink-0 border-b px-6 py-6 ${isDarkMode ? 'border-gray-700 bg-gray-900' : 'border-gray-200 bg-white'
+          {/* Main Content - Resizable Panels */}
+          <div className="flex-1 flex flex-col overflow-hidden">
+            <PanelGroup direction="horizontal">
+              {/* Left Sidebar - Route Cards */}
+              <Panel defaultSize={25} minSize={20} maxSize={40} className={`border-r ${isDarkMode ? 'border-gray-700 bg-gray-800' : 'border-gray-200 bg-gray-50'
                 }`}>
-                <div className="flex justify-end mb-2">
-                  {/* OSMnx option moved to hamburger menu */}
+                <div className="h-full overflow-y-auto">
+                  {routes.length > 0 && selectedRoute ? (
+                    <RouteList
+                      routes={routes}
+                      selectedRoute={selectedRoute}
+                      onSelectRoute={setSelectedRoute}
+                      isDarkMode={isDarkMode}
+                      originalOrigin={isRerouted ? sourceCity : undefined}
+                      isRerouted={isRerouted}
+                    />
+                  ) : (
+                    <div className="flex items-center justify-center h-full">
+                      <div className={`text-center ${isDarkMode ? 'text-gray-400' : 'text-gray-500'}`}>
+                        <p className="text-lg mb-2">No routes available</p>
+                        <p className="text-sm">Select origin and destination to analyze routes</p>
+                      </div>
+                    </div>
+                  )}
                 </div>
-                <RouteSensitivityControls
-                  isDarkMode={isDarkMode}
-                  onPrioritiesChange={handlePrioritiesChange}
-                  onRecalculate={handleRecalculate}
-                  disabled={routes.length === 0 || isLoadingRoutes}
-                  isRecalculating={isLoadingRoutes}
-                  headerActions={
-                    <div className="relative flex items-center">
-                      <button
-                        onClick={() => setIsMenuOpen(!isMenuOpen)}
-                        className={`p-2 rounded-full shadow-lg transition-transform hover:scale-105 ${isDarkMode ? 'bg-gray-800 text-gray-200 hover:bg-gray-700' : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-                          }`}
-                      >
-                        {isMenuOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
-                      </button>
+              </Panel>
 
-                      {isMenuOpen && (
-                        <div className={`absolute right-0 top-full mt-2 w-64 p-2 rounded-xl shadow-xl border flex flex-col gap-2 z-50 ${isDarkMode
-                          ? 'bg-gray-800 border-gray-700'
-                          : 'bg-white border-gray-200'
-                          }`}>
+              <PanelResizeHandle className={`w-1 hover:bg-lime-500 transition-colors flex items-center justify-center ${isDarkMode ? 'bg-gray-700' : 'bg-gray-200'
+                }`}>
+                <GripVertical className="w-3 h-3 text-gray-400" />
+              </PanelResizeHandle>
+
+              {/* Center + Right Area */}
+              <Panel>
+                <div className="h-full flex flex-col">
+                  {/* Top Panel - Sensitivity Controls (Fixed Height) */}
+                  <div className={`shrink-0 border-b px-6 py-6 ${isDarkMode ? 'border-gray-700 bg-gray-900' : 'border-gray-200 bg-white'
+                    }`}>
+                    <div className="flex justify-end mb-2">
+                      {/* OSMnx option moved to hamburger menu */}
+                    </div>
+                    <RouteSensitivityControls
+                      isDarkMode={isDarkMode}
+                      onPrioritiesChange={handlePrioritiesChange}
+                      onRecalculate={handleRecalculate}
+                      disabled={routes.length === 0 || isLoadingRoutes}
+                      isRecalculating={isLoadingRoutes}
+                      headerActions={
+                        <div className="relative flex items-center">
                           <button
-                            onClick={toggleTheme}
-                            className={`flex items-center gap-3 px-3 py-2 rounded-lg transition-colors ${isDarkMode
-                              ? 'hover:bg-gray-700 text-sm font-medium text-gray-200'
-                              : 'hover:bg-gray-50 text-sm font-medium text-gray-700'
+                            onClick={() => setIsMenuOpen(!isMenuOpen)}
+                            className={`p-2 rounded-full shadow-lg transition-transform hover:scale-105 ${isDarkMode ? 'bg-gray-800 text-gray-200 hover:bg-gray-700' : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
                               }`}
                           >
-                            <div className={`w-8 h-8 rounded-full flex items-center justify-center ${isDarkMode ? 'bg-gray-700 text-yellow-400' : 'bg-gray-100 text-gray-600'
-                              }`}>
-                              {isDarkMode ? <Sun className="w-4 h-4" /> : <Moon className="w-4 h-4" />}
-                            </div>
-                            <span>{isDarkMode ? 'Light Mode' : 'Dark Mode'}</span>
+                            {isMenuOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
                           </button>
-                          <button
-                            onClick={() => {
-                              setView("selection");
-                              setIsMenuOpen(false);
-                            }}
-                            className={`flex items-center gap-3 px-3 py-2 rounded-lg transition-colors ${isDarkMode
-                              ? 'hover:bg-gray-700 text-sm font-medium text-gray-200'
-                              : 'hover:bg-gray-50 text-sm font-medium text-gray-700'
-                              }`}
-                          >
-                            <div className={`w-8 h-8 rounded-full flex items-center justify-center ${isDarkMode ? 'bg-gray-700 text-lime-400' : 'bg-gray-100 text-lime-600'
+
+                          {isMenuOpen && (
+                            <div className={`absolute right-0 top-full mt-2 w-64 p-2 rounded-xl shadow-xl border flex flex-col gap-2 z-50 ${isDarkMode
+                              ? 'bg-gray-800 border-gray-700'
+                              : 'bg-white border-gray-200'
                               }`}>
-                              <Plug className="w-4 h-4" />
-                            </div>
-                            <span>Change Route</span>
-                          </button>
-                          <label
-                            className={`flex items-center gap-3 px-3 py-2 rounded-lg transition-colors cursor-pointer ${isDarkMode
-                              ? 'hover:bg-gray-700 text-sm font-medium text-gray-200'
-                              : 'hover:bg-gray-50 text-sm font-medium text-gray-700'
-                              }`}
-                          >
-                            <div className={`w-8 h-8 rounded-full flex items-center justify-center ${isDarkMode ? 'bg-gray-700 text-blue-400' : 'bg-gray-100 text-blue-600'
-                              }`}>
-                              <input
-                                type="checkbox"
-                                className="rounded border-gray-400"
-                                checked={osmnxEnabled}
-                                onChange={(e) => setOsmnxEnabled(e.target.checked)}
-                              />
-                            </div>
-                            <span>Detailed Road Data (OSMnx)</span>
-                          </label>
+                              <button
+                                onClick={toggleTheme}
+                                className={`flex items-center gap-3 px-3 py-2 rounded-lg transition-colors ${isDarkMode
+                                  ? 'hover:bg-gray-700 text-sm font-medium text-gray-200'
+                                  : 'hover:bg-gray-50 text-sm font-medium text-gray-700'
+                                  }`}
+                              >
+                                <div className={`w-8 h-8 rounded-full flex items-center justify-center ${isDarkMode ? 'bg-gray-700 text-yellow-400' : 'bg-gray-100 text-gray-600'
+                                  }`}>
+                                  {isDarkMode ? <Sun className="w-4 h-4" /> : <Moon className="w-4 h-4" />}
+                                </div>
+                                <span>{isDarkMode ? 'Light Mode' : 'Dark Mode'}</span>
+                              </button>
+                              <button
+                                onClick={() => {
+                                  setView("selection");
+                                  setIsMenuOpen(false);
+                                }}
+                                className={`flex items-center gap-3 px-3 py-2 rounded-lg transition-colors ${isDarkMode
+                                  ? 'hover:bg-gray-700 text-sm font-medium text-gray-200'
+                                  : 'hover:bg-gray-50 text-sm font-medium text-gray-700'
+                                  }`}
+                              >
+                                <div className={`w-8 h-8 rounded-full flex items-center justify-center ${isDarkMode ? 'bg-gray-700 text-lime-400' : 'bg-gray-100 text-lime-600'
+                                  }`}>
+                                  <Plug className="w-4 h-4" />
+                                </div>
+                                <span>Change Route</span>
+                              </button>
+                              <label
+                                className={`flex items-center gap-3 px-3 py-2 rounded-lg transition-colors cursor-pointer ${isDarkMode
+                                  ? 'hover:bg-gray-700 text-sm font-medium text-gray-200'
+                                  : 'hover:bg-gray-50 text-sm font-medium text-gray-700'
+                                  }`}
+                              >
+                                <div className={`w-8 h-8 rounded-full flex items-center justify-center ${isDarkMode ? 'bg-gray-700 text-blue-400' : 'bg-gray-100 text-blue-600'
+                                  }`}>
+                                  <input
+                                    type="checkbox"
+                                    className="rounded border-gray-400"
+                                    checked={osmnxEnabled}
+                                    onChange={(e) => setOsmnxEnabled(e.target.checked)}
+                                  />
+                                </div>
+                                <span>Detailed Road Data (OSMnx)</span>
+                              </label>
+                            
+                            <div className="border-t border-gray-200 dark:border-gray-700 my-1"></div>
+                            <button
+                              onClick={() => {
+                                localStorage.removeItem("token");
+                                localStorage.removeItem("userName");
+                                window.location.reload();
+                              }}
+                              className={`flex items-center gap-3 px-3 py-2 rounded-lg transition-colors ${isDarkMode
+                                ? 'hover:bg-gray-700 text-sm font-medium text-gray-200'
+                                : 'hover:bg-gray-50 text-sm font-medium text-gray-700'
+                                }`}
+                            >
+                              <div className={`w-8 h-8 rounded-full flex items-center justify-center ${isDarkMode ? 'bg-gray-700 text-lime-400' : 'bg-gray-100 text-lime-600'
+                                }`}>
+                                <LogOut className="w-4 h-4" />
+                              </div>
+                              <span>Logout</span>
+                            </button>
+                          </div>
+                        )}
+                  </div>
+                    }
+                  />
+                </div>
+
+                {/* Bottom Panel - Map + Right Sidebar */}
+                <div className="flex-1 overflow-hidden">
+                  <PanelGroup direction="horizontal">
+                    {/* Map View */}
+                    <Panel defaultSize={65} minSize={50}>
+                      {selectedRoute ? (
+                        <MapView
+                          route={selectedRoute}
+                          isDarkMode={isDarkMode}
+                          onSimulate={handleSimulateReroute}
+                          onReroute={handleRerouteRequest}
+                          onRouteUpdate={handleInPopupRouteUpdate}
+                          traversedPath={traversedPath}
+                          abandonedPath={abandonedPath}
+                        />
+                      ) : (
+                        <div className="flex items-center justify-center h-full">
+                          <div className={`text-center ${isDarkMode ? 'text-gray-400' : 'text-gray-500'}`}>
+                            <p className="text-lg mb-2">No route selected</p>
+                            <p className="text-sm">Select a route from the list to view on map</p>
+                          </div>
                         </div>
                       )}
-                    </div>
-                  }
-                />
-              </div>
+                    </Panel>
 
-              {/* Bottom Panel - Map + Right Sidebar */}
-              <div className="flex-1 overflow-hidden">
-                <PanelGroup direction="horizontal">
-                  {/* Map View */}
-                  <Panel defaultSize={65} minSize={50}>
-                    {selectedRoute ? (
-                      <MapView
-                        route={selectedRoute}
-                        isDarkMode={isDarkMode}
-                        onSimulate={handleSimulateReroute}
-                        onReroute={handleRerouteRequest}
-                        onRouteUpdate={handleInPopupRouteUpdate}
-                        traversedPath={traversedPath}
-                        abandonedPath={abandonedPath}
-                      />
-                    ) : (
-                      <div className="flex items-center justify-center h-full">
-                        <div className={`text-center ${isDarkMode ? 'text-gray-400' : 'text-gray-500'}`}>
-                          <p className="text-lg mb-2">No route selected</p>
-                          <p className="text-sm">Select a route from the list to view on map</p>
+                    <PanelResizeHandle className={`w-1 hover:bg-lime-500 transition-colors flex items-center justify-center ${isDarkMode ? 'bg-gray-700' : 'bg-gray-200'
+                      }`}>
+                      <GripVertical className="w-3 h-3 text-gray-400" />
+                    </PanelResizeHandle>
+
+                    {/* Right Sidebar */}
+                    <Panel defaultSize={35} minSize={20} maxSize={50} className={`border-l ${isDarkMode ? 'border-gray-700 bg-gray-900' : 'border-gray-200 bg-white'
+                      }`}>
+                      <div className="h-full flex flex-col">
+                        <div className={`p-4 border-b shrink-0 ${isDarkMode ? 'border-gray-700' : 'border-gray-200'}`}>
+                          <div className={`flex p-1 rounded-full border ${isDarkMode ? 'bg-gray-800 border-gray-700' : 'bg-gray-100 border-gray-200'}`}>
+                            <button
+                              onClick={() => setActiveRightTab('news')}
+                              className={`flex-1 py-1.5 text-xs font-medium rounded-full transition-all duration-300 ${activeRightTab === 'news'
+                                ? isDarkMode
+                                  ? 'bg-gradient-to-r from-lime-500/80 to-lime-600/80 backdrop-blur-xl border border-white/10 shadow-[0_0_20px_rgba(132,204,22,0.3)] text-white'
+                                  : 'bg-gradient-to-r from-lime-500 to-lime-600 shadow-lg text-white'
+                                : isDarkMode
+                                  ? 'text-gray-400 hover:text-gray-300 hover:bg-white/5'
+                                  : 'text-gray-500 hover:text-gray-700 hover:bg-gray-200/50'
+                                }`}
+                            >
+                              Latest News
+                            </button>
+                            <button
+                              onClick={() => setActiveRightTab('stats')}
+                              className={`flex-1 py-1.5 text-xs font-medium rounded-full transition-all duration-300 ${activeRightTab === 'stats'
+                                ? isDarkMode
+                                  ? 'bg-gradient-to-r from-lime-500/80 to-lime-600/80 backdrop-blur-xl border border-white/10 shadow-[0_0_20px_rgba(132,204,22,0.3)] text-white'
+                                  : 'bg-gradient-to-r from-lime-500 to-lime-600 shadow-lg text-white'
+                                : isDarkMode
+                                  ? 'text-gray-400 hover:text-gray-300 hover:bg-white/5'
+                                  : 'text-gray-500 hover:text-gray-700 hover:bg-gray-200/50'
+                                }`}
+                            >
+                              Stats & Alerts
+                            </button>
+                          </div>
+                        </div>
+
+                        <div className="flex-1 overflow-y-auto p-6 space-y-6">
+                          {activeRightTab === 'news' ? (
+                            <NewsPanel
+                              cities={Array.from(new Set(
+                                routes.flatMap(r => [r.origin, r.destination, ...(r.waypoints || [])])
+                              ))}
+                              isDarkMode={isDarkMode}
+                            />
+                          ) : (
+                            <>
+                              <HighwayReliabilityPanel isDarkMode={isDarkMode} />
+                              <LiveNewsAlerts isDarkMode={isDarkMode} />
+                            </>
+                          )}
                         </div>
                       </div>
-                    )}
-                  </Panel>
-
-                  <PanelResizeHandle className={`w-1 hover:bg-lime-500 transition-colors flex items-center justify-center ${isDarkMode ? 'bg-gray-700' : 'bg-gray-200'
-                    }`}>
-                    <GripVertical className="w-3 h-3 text-gray-400" />
-                  </PanelResizeHandle>
-
-                  {/* Right Sidebar */}
-                  <Panel defaultSize={35} minSize={20} maxSize={50} className={`border-l ${isDarkMode ? 'border-gray-700 bg-gray-900' : 'border-gray-200 bg-white'
-                    }`}>
-                    <div className="h-full flex flex-col">
-                      <div className={`p-4 border-b shrink-0 ${isDarkMode ? 'border-gray-700' : 'border-gray-200'}`}>
-                        <div className={`flex p-1 rounded-full border ${isDarkMode ? 'bg-gray-800 border-gray-700' : 'bg-gray-100 border-gray-200'}`}>
-                          <button
-                            onClick={() => setActiveRightTab('news')}
-                            className={`flex-1 py-1.5 text-xs font-medium rounded-full transition-all duration-300 ${activeRightTab === 'news'
-                              ? isDarkMode
-                                ? 'bg-gradient-to-r from-lime-500/80 to-lime-600/80 backdrop-blur-xl border border-white/10 shadow-[0_0_20px_rgba(132,204,22,0.3)] text-white'
-                                : 'bg-gradient-to-r from-lime-500 to-lime-600 shadow-lg text-white'
-                              : isDarkMode
-                                ? 'text-gray-400 hover:text-gray-300 hover:bg-white/5'
-                                : 'text-gray-500 hover:text-gray-700 hover:bg-gray-200/50'
-                              }`}
-                          >
-                            Latest News
-                          </button>
-                          <button
-                            onClick={() => setActiveRightTab('stats')}
-                            className={`flex-1 py-1.5 text-xs font-medium rounded-full transition-all duration-300 ${activeRightTab === 'stats'
-                              ? isDarkMode
-                                ? 'bg-gradient-to-r from-lime-500/80 to-lime-600/80 backdrop-blur-xl border border-white/10 shadow-[0_0_20px_rgba(132,204,22,0.3)] text-white'
-                                : 'bg-gradient-to-r from-lime-500 to-lime-600 shadow-lg text-white'
-                              : isDarkMode
-                                ? 'text-gray-400 hover:text-gray-300 hover:bg-white/5'
-                                : 'text-gray-500 hover:text-gray-700 hover:bg-gray-200/50'
-                              }`}
-                          >
-                            Stats & Alerts
-                          </button>
-                        </div>
-                      </div>
-
-                      <div className="flex-1 overflow-y-auto p-6 space-y-6">
-                        {activeRightTab === 'news' ? (
-                          <NewsPanel
-                            cities={Array.from(new Set(
-                              routes.flatMap(r => [r.origin, r.destination, ...(r.waypoints || [])])
-                            ))}
-                            isDarkMode={isDarkMode}
-                          />
-                        ) : (
-                          <>
-                            <HighwayReliabilityPanel isDarkMode={isDarkMode} />
-                            <LiveNewsAlerts isDarkMode={isDarkMode} />
-                          </>
-                        )}
-                      </div>
-                    </div>
-                  </Panel>
-                </PanelGroup>
+                    </Panel>
+                  </PanelGroup>
+                </div>
               </div>
-            </div>
-          </Panel>
-        </PanelGroup>
-      </div>
+            </Panel>
+          </PanelGroup>
+        </div>
 
-      {/* Integrations Modal */}
+          {/* Integrations Modal */}
       <IntegrationsModal
         isOpen={isIntegrationsOpen}
         onClose={() => setIsIntegrationsOpen(false)}
         isDarkMode={isDarkMode}
       />
-
-      {/* Chat Widget */}
-      {chatRoute && (
-        <ChatWidget
-          isOpen={isChatOpen}
-          onClose={() => setIsChatOpen(false)}
-          route={chatRoute}
-          isDarkMode={isDarkMode}
-        />
-      )}
     </div>
+  )
+}
+    </AuthWrapper >
   );
 }

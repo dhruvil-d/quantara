@@ -1735,5 +1735,66 @@
       ]
     },
     "comparison_report": null
+  },
+  "9d9e8c198554d196fc0df42ff29252a0": {
+    "routes": {
+      "Route 1": {
+        "route_name": "The Eastern Resilience Corridor",
+        "short_summary": "This highly efficient coastal highway path demonstrates outstanding overall resilience and carbon performance, mitigating common weather risks associated with the Eastern coastline.",
+        "reasoning": "The route achieves its exceptionally high resilience score (86.15%) by combining near-perfect carbon efficiency (1.0) and very strong road safety metrics (0.81). The extremely low weather risk (0.08%) along the typically cyclone-prone NH-16/NH-44 corridor suggests significant recent infrastructure investment, utilizing elevated roads, robust drainage, and bypasses designed to maximize uptime and prevent major weather-related closures.",
+        "intermediate_cities": [
+          {
+            "name": "Bhubaneswar",
+            "lat": 20.2709,
+            "lon": 85.8278
+          },
+          {
+            "name": "Visakhapatnam",
+            "lat": 17.6868,
+            "lon": 83.2185
+          },
+          {
+            "name": "Nellore",
+            "lat": 14.4426,
+            "lon": 79.9865
+          }
+        ]
+      }
+    },
+    "news_sentiment": {
+      "sentiment_score": 0.75,
+      "risk_factors": [
+        "Increased freight volume leading to congestion",
+        "Seasonal monsoon disruption potential"
+      ],
+      "positive_factors": [
+        "Improved efficiency via smart toll technology",
+        "Better first-mile connectivity due to regional infrastructure development"
+      ],
+      "reasoning": "The overall sentiment is very positive, as specific efficiency enhancements (smart tolls) and regional infrastructure boosts directly support faster and more reliable freight movement, outweighing the minor risks associated with high traffic volumes and predictable seasonal weather preparedness.",
+      "article_sentiments": [
+        {
+          "title": "Western Corridor Freight Movement Sees 15% Spike Near Kolkata, Bangalore",
+          "sentiment": "NEUTRAL",
+          "impact": "Indicates strong economic activity and freight demand but suggests potential for increased traffic congestion on arterial routes."
+        },
+        {
+          "title": "New Smart Toll Plazas Operational on NH-48",
+          "sentiment": "POSITIVE",
+          "impact": "Directly improves route efficiency by reducing stoppage time and increasing vehicle throughput on a critical segment leading towards Bangalore."
+        },
+        {
+          "title": "Infrastructure Development Boost for Kolkata",
+          "sentiment": "POSITIVE",
+          "impact": "Enhances the connectivity and throughput capacity of the origin hub, improving overall logistics chain reliability."
+        },
+        {
+          "title": "Monsoon Preparedness for Highway Cargo",
+          "sentiment": "NEUTRAL",
+          "impact": "Acknowledges seasonal weather risk but confirms proactive measures are being taken, which mitigates the probability of unexpected supply chain disruptions."
+        }
+      ]
+    },
+    "comparison_report": null
   }
 }
