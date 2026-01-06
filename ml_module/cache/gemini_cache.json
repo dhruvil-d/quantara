@@ -1796,5 +1796,595 @@
       ]
     },
     "comparison_report": null
+  },
+  "4ae3362dee499bfa5f4fb6dcc07d3316": {
+    "routes": {
+      "Route 2": {
+        "route_name": "The Sentinel Corridor",
+        "short_summary": "This path offers maximum operational resilience and the lowest weather risk profile, but incurs the highest distance and carbon penalty.",
+        "reasoning": "The extremely high resilience score (80.03) suggests this route prioritizes reliability above all other factors, likely utilizing highly maintained national highway segments and bypasses, making it robust against general disruptions and offering high road safety.",
+        "intermediate_cities": [
+          {
+            "name": "Vijayawada, AP",
+            "lat": 16.505,
+            "lon": 80.648
+          },
+          {
+            "name": "Visakhapatnam, AP",
+            "lat": 17.6868,
+            "lon": 83.2185
+          },
+          {
+            "name": "Bhubaneswar, Odisha",
+            "lat": 20.2961,
+            "lon": 85.8245
+          }
+        ]
+      },
+      "Route 1": {
+        "route_name": "The Efficiency Express",
+        "short_summary": "This is the most balanced option, offering the highest carbon efficiency and shortest effective distance, albeit with moderately lower overall resilience.",
+        "reasoning": "The combination of the best carbon efficiency (0.70) and moderate resilience (74.05) indicates this is the primary, most direct trade route. Its resilience score suggests minor vulnerabilities, potentially due to exposure to urban traffic or standard monsoon-related delays.",
+        "intermediate_cities": [
+          {
+            "name": "Vijayawada, AP",
+            "lat": 16.505,
+            "lon": 80.648
+          },
+          {
+            "name": "Visakhapatnam, AP",
+            "lat": 17.6868,
+            "lon": 83.2185
+          },
+          {
+            "name": "Bhubaneswar, Odisha",
+            "lat": 20.2961,
+            "lon": 85.8245
+          }
+        ]
+      },
+      "Route 3": {
+        "route_name": "The Volatility Bypass",
+        "short_summary": "This route presents an unacceptable risk profile due to extremely low operational resilience, making it unsuitable for time-sensitive or high-value freight.",
+        "reasoning": "The extremely low resilience score (26.07) indicates chronic and severe disruption risks, potentially stemming from frequent political roadblocks, ongoing infrastructure failure points, or highly seasonal environmental barriers not fully captured by the standard weather risk metric.",
+        "intermediate_cities": [
+          {
+            "name": "Vijayawada, AP",
+            "lat": 16.505,
+            "lon": 80.648
+          },
+          {
+            "name": "Visakhapatnam, AP",
+            "lat": 17.6868,
+            "lon": 83.2185
+          },
+          {
+            "name": "Bhubaneswar, Odisha",
+            "lat": 20.2961,
+            "lon": 85.8245
+          }
+        ]
+      }
+    },
+    "news_sentiment": {
+      "sentiment_score": 0.85,
+      "risk_factors": [
+        "Increased freight volume leading to potential congestion and slower throughput times",
+        "Seasonal weather risks (Monsoon)"
+      ],
+      "positive_factors": [
+        "Improved efficiency through smart toll plazas on NH-48",
+        "General infrastructure development in Kolkata",
+        "Proactive mitigation of monsoon-related transport risks"
+      ],
+      "reasoning": "Overall sentiment is highly positive due to news highlighting significant technological adoption (smart tolls) and proactive risk mitigation (monsoon preparedness), which strongly outweigh the minor negative implication of increased freight volume.",
+      "article_sentiments": [
+        {
+          "title": "Western Corridor Freight Movement Sees 15% Spike Near Kolkata, Bangalore",
+          "sentiment": "NEUTRAL",
+          "impact": "Indicates strong economic activity, but the spike suggests potential increase in road congestion."
+        },
+        {
+          "title": "New Smart Toll Plazas Operational on NH-48",
+          "sentiment": "POSITIVE",
+          "impact": "Directly improves logistics efficiency by drastically reducing stop times and processing friction."
+        },
+        {
+          "title": "Infrastructure Development Boost for Kolkata",
+          "sentiment": "POSITIVE",
+          "impact": "Enhances terminal efficiency, connectivity, and overall urban logistics supporting the final leg of the journey."
+        },
+        {
+          "title": "Monsoon Preparedness for Highway Cargo",
+          "sentiment": "POSITIVE",
+          "impact": "Mitigates seasonal weather risks, improving route resilience and operational continuity during high-risk periods."
+        }
+      ]
+    },
+    "comparison_report": null
+  },
+  "9a450fa888c26bce80b54cd039ed01fc": {
+    "routes": {
+      "Route 1": {
+        "route_name": "The Efficiency Clipper",
+        "short_summary": "This route offers the shortest path and highest carbon efficiency but carries the highest inherent weather risk.",
+        "reasoning": "The moderate overall resilience score (74.05) suggests a balance between minimizing distance and maintaining acceptable operational integrity. While this route is optimized for carbon efficiency, the higher relative weather risk (0.063) indicates segments prone to disruption, likely due to reliance on specific, non-redundant arterial roads or less protected coastal sections that compromise long-term stability.",
+        "intermediate_cities": [
+          {
+            "name": "Hyderabad, Telangana",
+            "lat": 17.385,
+            "lon": 78.4867
+          },
+          {
+            "name": "Vijayawada, Andhra Pradesh",
+            "lat": 16.5062,
+            "lon": 80.648
+          },
+          {
+            "name": "Bhubaneswar, Odisha",
+            "lat": 20.2961,
+            "lon": 85.8245
+          }
+        ]
+      },
+      "Route 2": {
+        "route_name": "The Resilient Corridor",
+        "short_summary": "Prioritizing stability, this route exhibits the highest resilience and lowest weather risk, making it the most robust option despite being the longest path.",
+        "reasoning": "Achieving the highest resilience score (80.03) and perfect carbon efficiency (1.0, likely based on optimized operational conditions) suggests this path utilizes premium infrastructure, dual-redundancy options, or avoids known choke points, justifying the longer total distance (1.0). The exceptionally low weather risk (0.058) confirms investment in infrastructure capable of handling seasonal disruptions, making it the preferred option for high-value or time-sensitive cargo where reliability is paramount.",
+        "intermediate_cities": [
+          {
+            "name": "Hyderabad, Telangana",
+            "lat": 17.385,
+            "lon": 78.4867
+          },
+          {
+            "name": "Vijayawada, Andhra Pradesh",
+            "lat": 16.5062,
+            "lon": 80.648
+          },
+          {
+            "name": "Bhubaneswar, Odisha",
+            "lat": 20.2961,
+            "lon": 85.8245
+          }
+        ]
+      },
+      "Route 3": {
+        "route_name": "The Contingency Gap",
+        "short_summary": "This path presents an unacceptably low resilience, suggesting major structural or data integrity issues, rendering it unsuitable for freight transport.",
+        "reasoning": "The extremely low resilience score (26.07) paired with a zero distance measurement (0.0) indicates this route either models an inherently unstable multimodal transfer (e.g., high-risk port operations) or represents a major data anomaly. Despite decent road safety, the total lack of resilience and worst carbon efficiency suggests fundamental, critical failure points\u2014such as excessive downtime, regulatory hurdles, or complete closure risk\u2014making consistent operational planning impossible.",
+        "intermediate_cities": [
+          {
+            "name": "Hyderabad, Telangana",
+            "lat": 17.385,
+            "lon": 78.4867
+          },
+          {
+            "name": "Vijayawada, Andhra Pradesh",
+            "lon": 80.648,
+            "lat": 16.5062
+          },
+          {
+            "name": "Bhubaneswar, Odisha",
+            "lat": 20.2961,
+            "lon": 85.8245
+          }
+        ]
+      }
+    },
+    "news_sentiment": {
+      "sentiment_score": 0.85,
+      "risk_factors": [
+        "Increased risk of congestion due to 15% spike in freight volume",
+        "Potential localized delays near urban centers"
+      ],
+      "positive_factors": [
+        "Improved efficiency via smart toll plazas",
+        "Enhanced resilience through monsoon preparedness",
+        "Better first-mile access due to infrastructure boost"
+      ],
+      "reasoning": "The overall sentiment is highly positive as operational improvements like smart toll plazas and proactive weather preparedness directly enhance efficiency and mitigate known risks, strongly outweighing the increased, manageable risk of congestion from high volume.",
+      "article_sentiments": [
+        {
+          "title": "Western Corridor Freight Movement Sees 15% Spike Near Bangalore, Kolkata",
+          "sentiment": "NEGATIVE",
+          "impact": "Increased volume strains existing capacity, leading to higher traffic congestion and potential delays for freight movement."
+        },
+        {
+          "title": "New Smart Toll Plazas Operational on NH-48",
+          "sentiment": "POSITIVE",
+          "impact": "Reduces vehicle dwell time and improves throughput efficiency, positively affecting journey time reliability."
+        },
+        {
+          "title": "Infrastructure Development Boost for Bangalore",
+          "sentiment": "POSITIVE",
+          "impact": "Improves first-mile access to the corridor, reducing localized pickup delays and improving overall operational flow."
+        },
+        {
+          "title": "Monsoon Preparedness for Highway Cargo",
+          "sentiment": "POSITIVE",
+          "impact": "Proactive risk mitigation enhances route resilience, especially concerning seasonal weather-related disruptions."
+        }
+      ]
+    },
+    "comparison_report": null
+  },
+  "f1a4986ee8c13e4654cf1b308a0e9c42": {
+    "routes": {
+      "Route 1": {
+        "route_name": "The Sovereign Corridor",
+        "short_summary": "This route offers maximum reliability and carbon efficiency (1.0) despite being the longest distance option.",
+        "reasoning": "Resilience is exceptionally high (86.12) due to the perfect carbon efficiency score and strong performance in road safety and minimal weather dependency, suggesting a modern, well-maintained dedicated route where operational disruptions are negligible.",
+        "intermediate_cities": [
+          {
+            "name": "Jaipur, Rajasthan",
+            "lat": 26.9124,
+            "lon": 75.7873
+          },
+          {
+            "name": "Udaipur, Rajasthan",
+            "lat": 24.5854,
+            "lon": 73.7125
+          },
+          {
+            "name": "Vadodara, Gujarat",
+            "lat": 22.3072,
+            "lon": 73.1812
+          }
+        ]
+      },
+      "Route 3": {
+        "route_name": "The Golden Quadrilateral Standard",
+        "short_summary": "The safest option available, balancing medium distance with very low weather risk, though overall resilience is only moderate.",
+        "reasoning": "Resilience is moderate (47.08), pulled down by average carbon efficiency, but strongly supported by the highest road safety score (0.813) and the lowest recorded weather risk, utilizing reliable, mature highway infrastructure.",
+        "intermediate_cities": [
+          {
+            "name": "Jaipur, Rajasthan",
+            "lat": 26.9124,
+            "lon": 75.7873
+          },
+          {
+            "name": "Udaipur, Rajasthan",
+            "lat": 24.5854,
+            "lon": 73.7125
+          },
+          {
+            "name": "Vadodara, Gujarat",
+            "lat": 22.3072,
+            "lon": 73.1812
+          }
+        ]
+      },
+      "Route 2": {
+        "route_name": "The Economizer Bypass",
+        "short_summary": "The shortest physical path available (0.0), demanding significant trade-offs in resilience, efficiency, and exposure to weather hazards.",
+        "reasoning": "The resilience score is severely low (35.70) due to poor carbon efficiency (0.0), the highest weather risk exposure, and the lowest road safety metrics, suggesting a high-risk, low-maintenance direct arterial route.",
+        "intermediate_cities": [
+          {
+            "name": "Jaipur, Rajasthan",
+            "lat": 26.9124,
+            "lon": 75.7873
+          },
+          {
+            "name": "Udaipur, Rajasthan",
+            "lat": 24.5854,
+            "lon": 73.7125
+          },
+          {
+            "name": "Vadodara, Gujarat",
+            "lat": 22.3072,
+            "lon": 73.1812
+          }
+        ]
+      }
+    },
+    "news_sentiment": {
+      "sentiment_score": 0.85,
+      "risk_factors": [
+        "Increased volume potentially leading to traffic choke points",
+        "Seasonal weather disruptions (Monsoon)"
+      ],
+      "positive_factors": [
+        "Efficiency improvement via Smart Toll Plazas",
+        "Increased capacity for freight movement",
+        "Improved destination infrastructure near Mumbai"
+      ],
+      "reasoning": "The strong positive sentiment reflects key operational efficiency improvements (smart tolls) and endpoint infrastructure boosts, confirming the corridor's ability to handle significant demand growth.",
+      "article_sentiments": [
+        {
+          "title": "Western Corridor Freight Movement Sees 15% Spike Near Mumbai, Delhi",
+          "sentiment": "POSITIVE",
+          "impact": "Indicates robust capacity and high demand, favorable for sustained logistics operations."
+        },
+        {
+          "title": "New Smart Toll Plazas Operational on NH-48",
+          "sentiment": "POSITIVE",
+          "impact": "Directly improves transit speed and reduces congestion delays on the main highway corridor."
+        },
+        {
+          "title": "Infrastructure Development Boost for Mumbai",
+          "sentiment": "POSITIVE",
+          "impact": "Improves final mile delivery and port/hub access efficiency near the destination."
+        },
+        {
+          "title": "Monsoon Preparedness for Highway Cargo",
+          "sentiment": "NEUTRAL",
+          "impact": "Indicates proactive risk management efforts, mitigating potential negative impacts from seasonal weather."
+        }
+      ]
+    },
+    "comparison_report": null
+  },
+  "bea55af20da90b303a31bcc1cc7419b5": {
+    "routes": {
+      "Route 1": {
+        "route_name": "The Eastern Coastline Freighter",
+        "short_summary": "This path offers exceptional overall resilience and high road safety due to major highway standardization, counteracting typical long-haul risks.",
+        "reasoning": "The very high resilience score (86.36) combined with low weather risk (0.067) suggests this route utilizes the primary, well-maintained National Highways (likely a combination of NH-44 and NH-16 via the East Coast). The high road safety rating indicates that the corridor benefits from modern road engineering and traffic management practices, ensuring reliable transit even over long distances.",
+        "intermediate_cities": [
+          {
+            "name": "Vijayawada",
+            "lat": 16.5042,
+            "lon": 80.648
+          },
+          {
+            "name": "Visakhapatnam",
+            "lat": 17.6868,
+            "lon": 83.2185
+          },
+          {
+            "name": "Bhubaneswar",
+            "lat": 20.2961,
+            "lon": 85.8245
+          }
+        ]
+      }
+    },
+    "news_sentiment": {
+      "sentiment_score": 0.78,
+      "risk_factors": [
+        "traffic congestion due to rising freight volume",
+        "seasonal monsoon disruptions"
+      ],
+      "positive_factors": [
+        "improved toll efficiency",
+        "general infrastructure upgrades in key metro areas"
+      ],
+      "reasoning": "The overall sentiment is highly positive, driven by concrete operational improvements such as the deployment of smart toll plazas and infrastructure boosts, which enhance throughput and efficiency along the corridor.",
+      "article_sentiments": [
+        {
+          "title": "Western Corridor Freight Movement Sees 15% Spike Near Bangalore, Kolkata",
+          "sentiment": "POSITIVE",
+          "impact": "Increased freight volume confirms high operational demand and economic viability of the corridor, although it implies potential congestion risks."
+        },
+        {
+          "title": "New Smart Toll Plazas Operational on NH-48",
+          "sentiment": "POSITIVE",
+          "impact": "Directly enhances logistical efficiency by reducing travel time delays associated with tolling processes."
+        },
+        {
+          "title": "Infrastructure Development Boost for Bangalore",
+          "sentiment": "POSITIVE",
+          "impact": "Improves first and last-mile connectivity for freight originating or terminating in the Bangalore region."
+        },
+        {
+          "title": "Monsoon Preparedness for Highway Cargo",
+          "sentiment": "NEUTRAL",
+          "impact": "Acknowledges seasonal weather risk but confirms proactive measures are being taken, mitigating potential negative impacts."
+        }
+      ]
+    },
+    "comparison_report": null
+  },
+  "5890260efee96f0628580b9818f1291d": {
+    "routes": {
+      "Route 1": {
+        "route_name": "The Deccan Express Corridor",
+        "short_summary": "This is the longest route but offers industry-leading resilience and carbon efficiency due to superior infrastructure investment.",
+        "reasoning": "Resilience is exceptionally high (84.98) because this corridor likely utilizes high-grade, perhaps dedicated, freight infrastructure or robust bypasses that minimize exposure to urban congestion and standard failure points. The high carbon efficiency (1.0) reinforces the idea of high average speed and reduced stop-start traffic, ensuring operational robustness even over a greater distance.",
+        "intermediate_cities": [
+          {
+            "name": "Pune",
+            "lat": 18.5204,
+            "lon": 73.8567
+          },
+          {
+            "name": "Bengaluru",
+            "lat": 12.9716,
+            "lon": 77.5946
+          },
+          {
+            "name": "Vellore",
+            "lat": 12.9165,
+            "lon": 79.1325
+          }
+        ]
+      },
+      "Route 3": {
+        "route_name": "The Golden Quadrilateral Link",
+        "short_summary": "A balanced, standard route offering moderate resilience and efficiency, typical of the main national highway alignment.",
+        "reasoning": "The moderate resilience score (45.33) indicates that while it follows key established transport corridors (like NH-48), it is prone to standard highway disruptions such as periodic congestion, regional maintenance, and localized weather impacts, leading to moderate reliability.",
+        "intermediate_cities": [
+          {
+            "name": "Kolhapur",
+            "lat": 16.705,
+            "lon": 74.2433
+          },
+          {
+            "name": "Hubballi",
+            "lat": 15.3647,
+            "lon": 75.124
+          },
+          {
+            "name": "Chittoor",
+            "lat": 13.2084,
+            "lon": 79.1009
+          }
+        ]
+      },
+      "Route 2": {
+        "route_name": "The Direct Commerce Spur",
+        "short_summary": "The shortest path with excellent road safety scores but suffers from extremely poor resilience and carbon efficiency due to lack of redundancy.",
+        "reasoning": "This route's resilience (33.21) is extremely low, likely because it represents the most direct path, potentially utilizing single-lane roads or congested inner-city bypasses. This creates high vulnerability to single points of failure (accidents, local protests, narrow bottlenecks), severely impacting reliability and generating the worst carbon footprint (0.0).",
+        "intermediate_cities": [
+          {
+            "name": "Solapur",
+            "lat": 17.6599,
+            "lon": 75.9064
+          },
+          {
+            "name": "Kurnool",
+            "lat": 15.8281,
+            "lon": 78.0373
+          },
+          {
+            "name": "Tirupati",
+            "lat": 13.6288,
+            "lon": 79.4199
+          }
+        ]
+      }
+    },
+    "news_sentiment": {
+      "sentiment_score": 0.75,
+      "risk_factors": [
+        "Increased freight volume leading to potential congestion near major metropolitan hubs (Mumbai/Chennai)"
+      ],
+      "positive_factors": [
+        "Efficiency improvements via smart tolling on NH-48",
+        "Proactive mitigation of monsoon-related disruptions",
+        "General infrastructure upgrades boosting first-mile connectivity"
+      ],
+      "reasoning": "The overall sentiment is strongly positive, as specific operational efficiencies (smart tolls, monsoon preparedness) directly address key risk areas, offsetting the minor negative impact of the 15% spike in freight volume.",
+      "article_sentiments": [
+        {
+          "title": "Western Corridor Freight Movement Sees 15% Spike Near Mumbai, Chennai",
+          "sentiment": "NEGATIVE",
+          "impact": "Increased freight volume strains existing infrastructure, raising the risk of congestion and bottlenecks near terminal points."
+        },
+        {
+          "title": "New Smart Toll Plazas Operational on NH-48",
+          "sentiment": "POSITIVE",
+          "impact": "Reduces transit time and operational costs by eliminating toll plaza queues, directly improving flow on major routes (Route 3 & 1)."
+        },
+        {
+          "title": "Infrastructure Development Boost for Mumbai",
+          "sentiment": "POSITIVE",
+          "impact": "Enhances last-mile efficiency and port connectivity, streamlining origin-point logistics."
+        },
+        {
+          "title": "Monsoon Preparedness for Highway Cargo",
+          "sentiment": "POSITIVE",
+          "impact": "Proactive planning lowers weather-related risks (which are present on all routes), increasing overall operational resilience during wet seasons."
+        }
+      ]
+    },
+    "comparison_report": null
+  },
+  "00e16c3a242d8c0a79d100b4ce3b7bfa": {
+    "routes": {
+      "Route 2": {
+        "route_name": "The Resilient Expressway",
+        "short_summary": "This route provides superior overall resilience and high carbon efficiency, justifying the longer travel distance (1.0 normalized).",
+        "reasoning": "Resilience is exceptionally high (74.1) because this route likely utilizes modern highway alignments or comprehensive bypasses, minimizing exposure to congestion, minimizing weather-related delays (lowest weather risk), and ensuring smoother flow, which also contributes to the highest measured carbon efficiency (1.0).",
+        "intermediate_cities": [
+          {
+            "name": "Kolar",
+            "lat": 13.1333,
+            "lon": 78.1333
+          },
+          {
+            "name": "Chittoor",
+            "lat": 13.2,
+            "lon": 79.1167
+          },
+          {
+            "name": "Arcot",
+            "lat": 12.9304,
+            "lon": 79.3175
+          }
+        ]
+      },
+      "Route 3": {
+        "route_name": "The Standard Corridor",
+        "short_summary": "A balanced path offering moderate distance and adequate safety characteristics but lacking the operational buffers needed for high resilience against external shocks.",
+        "reasoning": "The moderate resilience score (49.3) suggests this route is the traditional, well-traveled path (likely NH-48 alignment) which is susceptible to standard operational risks like traffic volume surges and occasional infrastructure stress, keeping the score below optimal levels despite good road safety metrics.",
+        "intermediate_cities": [
+          {
+            "name": "Hosur",
+            "lat": 12.7385,
+            "lon": 77.8182
+          },
+          {
+            "name": "Ambur",
+            "lat": 12.7099,
+            "lon": 78.7077
+          },
+          {
+            "name": "Ranipet",
+            "lat": 12.9304,
+            "lon": 79.3175
+          }
+        ]
+      },
+      "Route 1": {
+        "route_name": "The Congestion Bypass",
+        "short_summary": "The shortest path (0.0 normalized distance) is severely hampered by the lowest overall resilience, making it highly vulnerable to disruption.",
+        "reasoning": "The resilience score is the lowest (44.9), likely due to high congestion exposure, frequent bottlenecks, and potentially older infrastructure alignments that pass directly through urban centers, maximizing travel time uncertainty and vulnerability to minor incidents or weather events.",
+        "intermediate_cities": [
+          {
+            "name": "Krishnagiri",
+            "lat": 12.5333,
+            "lon": 78.2167
+          },
+          {
+            "name": "Vaniyambadi",
+            "lat": 12.5298,
+            "lon": 78.6258
+          },
+          {
+            "name": "Vellore",
+            "lat": 12.9165,
+            "lon": 79.1325
+          }
+        ]
+      }
+    },
+    "news_sentiment": {
+      "sentiment_score": 0.75,
+      "risk_factors": [
+        "Increased freight volume leading to potential congestion (15% spike)",
+        "Seasonal weather disruptions (Monsoon)"
+      ],
+      "positive_factors": [
+        "Improved operational efficiency via Smart Toll Plazas on key freight routes (NH-48)",
+        "General capacity increase due to regional infrastructure development",
+        "Proactive risk mitigation through Monsoon preparedness"
+      ],
+      "reasoning": "The operational improvements (smart tolls, infrastructure) and proactive risk mitigation efforts significantly outweigh the negative impact of increased freight volume, resulting in an overall positive outlook for corridor efficiency.",
+      "article_sentiments": [
+        {
+          "title": "Western Corridor Freight Movement Sees 15% Spike Near Bangalore, Chennai",
+          "sentiment": "NEGATIVE",
+          "impact": "Indicates increased strain and potential congestion on key logistical arteries."
+        },
+        {
+          "title": "New Smart Toll Plazas Operational on NH-48",
+          "sentiment": "POSITIVE",
+          "impact": "Directly improves throughput efficiency and reduces idling time on a major freight route."
+        },
+        {
+          "title": "Infrastructure Development Boost for Bangalore",
+          "sentiment": "POSITIVE",
+          "impact": "Enhances surrounding access roads and entry/exit points, improving regional connectivity and capacity."
+        },
+        {
+          "title": "Monsoon Preparedness for Highway Cargo",
+          "sentiment": "POSITIVE",
+          "impact": "Proactive measure to mitigate seasonal weather risks, directly boosting route reliability and resilience."
+        }
+      ]
+    },
+    "comparison_report": null
   }
 }
