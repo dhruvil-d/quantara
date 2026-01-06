@@ -118,8 +118,40 @@ app.get("/", (req, res) => {
 });
 
 // -----------------------------
-// 🟢 Geocoding (Photon – FREE)
+// 🤖 Chatbot Endpoint
 // -----------------------------
+app.post("/chat", async (req, res) => {
+    const { message, routeId, session_id } = req.body;
+
+    // In a real scenario, we might fetch route details using routeId from cache or DB
+    // For now, we expect the frontend to pass the relevant context directly or we look it up if available
+    // Here we'll check if context is passed in body, otherwise try cache
+    let context = req.body.context;
+
+    // Use routeCache if available and context not provided
+    if (!context && routeId) {
+        // Find route in cache - complex because cache key is "source_dest"
+        // We'll iterate cache to find a route with matching ID if needed
+        // For simplicity, we rely on frontend passing context for now as per plan
+    }
+
+    try {
+        const response = await fetch("http://localhost:5002/chat", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+                message,
+                context,
+                session_id
+            })
+        });
+        const data = await response.json();
+        res.json(data);
+    } catch (error) {
+        log(`Chat API error: ${error.message}`, "ERROR");
+        res.status(500).json({ error: "Failed to communicate with Chat service" });
+    }
+});
 app.get("/geocode", async (req, res) => {
     const { city } = req.query;
 

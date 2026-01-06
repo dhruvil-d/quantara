@@ -14,6 +14,10 @@ start "B2B Dashboard - Backend" cmd /k "cd /d "%SCRIPT_DIR%backend" && npm run s
 REM Wait a moment for the backend to start
 timeout /t 2 /nobreak >nul
 
+REM Start Chatbot Service in a new terminal window
+echo Starting Chatbot Service...
+start "B2B Dashboard - Chatbot Service" cmd /k "cd /d "%SCRIPT_DIR%" && python ml_module/chatbot/chat_api.py"
+
 REM Start Frontend in a new terminal window
 echo Starting Frontend...
 start "B2B Dashboard - Frontend" cmd /k "cd /d "%SCRIPT_DIR%B2B Dashboard Design" && npm run dev"

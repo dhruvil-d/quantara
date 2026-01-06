@@ -1629,5 +1629,111 @@
       ],
       "recommendation": "Based on the current data, Route 2 (The Eco-Optimized Corridor) is strongly recommended. While the overall resilience score is lower than the previous theoretical route, Route 2 offers the highest resilience (60.16) and maximum carbon efficiency among all available new choices. It balances necessary operational constraints against environmental goals, positioning it as the most stable and fiscally sound path for freight operations from Nagpur to Chennai."
     }
+  },
+  "1fd371109719ff4de18e30acb06e4fa4": {
+    "routes": {
+      "Route 1": {
+        "route_name": "The Western Resilience Express",
+        "short_summary": "Highest overall resilience and road safety achieved at the cost of the maximum total distance and associated carbon footprint.",
+        "reasoning": "The exceptional resilience score (86.08) is attributed to the superior road safety metrics (0.804) and the lowest measured weather risk (0.093), suggesting this route utilizes dedicated expressways or highly redundant bypasses that minimize exposure to congested urban centers and known disruption points.",
+        "intermediate_cities": [
+          {
+            "name": "Vadodara",
+            "lat": 22.3072,
+            "lon": 73.1812
+          },
+          {
+            "name": "Udaipur",
+            "lat": 24.5854,
+            "lon": 73.7125
+          },
+          {
+            "name": "Jaipur",
+            "lat": 26.9124,
+            "lon": 75.7873
+          }
+        ]
+      },
+      "Route 3": {
+        "route_name": "The Commercial Efficiency Line",
+        "short_summary": "Offers the best balance of moderate resilience and strong distance efficiency, representing the standard trade route for time-sensitive cargo.",
+        "reasoning": "Its moderate resilience (47.50) stems from its optimal distance utilization (0.54) coupled with acceptable road safety (0.794) and very low weather risk (0.095), positioning it as the standard, efficient corridor with manageable operational risk.",
+        "intermediate_cities": [
+          {
+            "name": "Vadodara",
+            "lat": 22.3072,
+            "lon": 73.1812
+          },
+          {
+            "name": "Udaipur",
+            "lat": 24.5854,
+            "lon": 73.7125
+          },
+          {
+            "name": "Jaipur",
+            "lat": 26.9124,
+            "lon": 75.7873
+          }
+        ]
+      },
+      "Route 2": {
+        "route_name": "The Low-Emissions Shortcut",
+        "short_summary": "Maximizes carbon efficiency and distance savings but introduces significant risk due to the lowest safety rating and highest exposure to weather disruptions.",
+        "reasoning": "The extremely low resilience score (37.55) is a direct consequence of prioritizing minimization of distance (0.0), which leads to the highest measured weather risk (0.112) and the lowest road safety metrics (0.759), indicating vulnerability to frequent and intense disruptions.",
+        "intermediate_cities": [
+          {
+            "name": "Vadodara",
+            "lat": 22.3072,
+            "lon": 73.1812
+          },
+          {
+            "name": "Udaipur",
+            "lat": 24.5854,
+            "lon": 73.7125
+          },
+          {
+            "name": "Jaipur",
+            "lat": 26.9124,
+            "lon": 75.7873
+          }
+        ]
+      }
+    },
+    "news_sentiment": {
+      "sentiment_score": 0.85,
+      "risk_factors": [
+        "Increased freight volume spike leading to potential congestion",
+        "Seasonal monsoon weather disruptions"
+      ],
+      "positive_factors": [
+        "Efficiency gains from new smart toll plazas (NH-48)",
+        "Proactive government monsoon preparedness measures",
+        "General infrastructure development improving last-mile connectivity"
+      ],
+      "reasoning": "The overall sentiment is highly positive due to specific, actionable improvements in efficiency (smart tolls) and resilience (monsoon preparedness), outweighing the generalized risk posed by increased freight volume.",
+      "article_sentiments": [
+        {
+          "title": "Western Corridor Freight Movement Sees 15% Spike Near Delhi, Mumbai",
+          "sentiment": "NEUTRAL",
+          "impact": "Indicates robust economic activity and high demand, but the volume spike introduces potential congestion and strain on existing infrastructure capacity, balancing the immediate sentiment."
+        },
+        {
+          "title": "New Smart Toll Plazas Operational on NH-48",
+          "sentiment": "POSITIVE",
+          "impact": "Directly improves throughput and reduces transit time by eliminating or minimizing manual stopping points on the critical highway corridor."
+        },
+        {
+          "title": "Infrastructure Development Boost for Delhi",
+          "sentiment": "POSITIVE",
+          "impact": "Suggests improved connectivity, better city bypasses, and reduced congestion risk near the destination terminal."
+        },
+        {
+          "title": "Monsoon Preparedness for Highway Cargo",
+          "sentiment": "POSITIVE",
+          "impact": "Mitigates the largest predictable weather risk factor, enhancing operational resilience during the wet season."
+        }
+      ]
+    },
+    "comparison_report": null
   }
 }

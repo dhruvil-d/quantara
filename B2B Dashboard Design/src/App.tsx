@@ -12,6 +12,7 @@ import RerouteSelection from "./components/RerouteSelection";
 import { useState } from "react";
 import { Plug, Moon, Sun, GripVertical, GripHorizontal, Menu, X } from "lucide-react";
 import { Panel, PanelGroup, PanelResizeHandle } from "react-resizable-panels";
+import { ChatWidget } from "./components/ChatWidget";
 
 export interface Route {
   id: string;
@@ -51,6 +52,7 @@ export interface Route {
     short_summary: string;
     reasoning: string;
   } | null;
+  analysisData?: any; // For Chatbot context
 }
 
 const mockRoutes: Route[] = [
@@ -170,6 +172,15 @@ export default function App() {
   const [loadingProgress, setLoadingProgress] = useState(0);
   const [osmnxEnabled, setOsmnxEnabled] = useState(false);
   const [isRerouted, setIsRerouted] = useState(false); // Track if current route is a rerouted version
+
+  // Chat State
+  const [isChatOpen, setIsChatOpen] = useState(false);
+  const [chatRoute, setChatRoute] = useState<Route | null>(null);
+
+  const handleChatClick = (route: Route) => {
+    setChatRoute(route);
+    setIsChatOpen(true);
+  };
 
   // Effect to toggle global dark mode class
   React.useEffect(() => {
@@ -563,6 +574,7 @@ export default function App() {
                   routes={routes}
                   selectedRoute={selectedRoute}
                   onSelectRoute={setSelectedRoute}
+                  onChatClick={handleChatClick}
                   isDarkMode={isDarkMode}
                   originalOrigin={isRerouted ? sourceCity : undefined}
                   isRerouted={isRerouted}
@@ -761,6 +773,16 @@ export default function App() {
         onClose={() => setIsIntegrationsOpen(false)}
         isDarkMode={isDarkMode}
       />
+
+      {/* Chat Widget */}
+      {chatRoute && (
+        <ChatWidget
+          isOpen={isChatOpen}
+          onClose={() => setIsChatOpen(false)}
+          route={chatRoute}
+          isDarkMode={isDarkMode}
+        />
+      )}
     </div>
   );
 }
