@@ -42,11 +42,11 @@ export function SelectionPage({ onContinue, isDarkMode, toggleTheme, osmnxEnable
     return (
         <div className={`h-screen flex flex-col items-center justify-center p-6 transition-colors duration-300 ${isDarkMode ? "bg-gray-900 text-gray-100" : "bg-gray-50 text-gray-900"
             }`}>
-            {/* Theme Toggle (Top Right) */}
-            <div className="absolute top-6 right-6">
+            {/* Theme Toggle & Logout (Top Right) */}
+            <div className="absolute top-6 right-6 flex items-center gap-3">
                 <button
                     onClick={toggleTheme}
-                    className={`p-3 rounded-full shadow-lg transition-transform hover:scale-105 mr-2 ${isDarkMode ? "bg-gray-800 text-yellow-400" : "bg-white text-gray-600"
+                    className={`p-3 rounded-full shadow-lg transition-transform hover:scale-105 ${isDarkMode ? "bg-gray-800 text-yellow-400 border border-gray-700" : "bg-white text-gray-600 border border-gray-200"
                         }`}
                 >
                     {isDarkMode ? <Sun className="w-5 h-5" /> : <Moon className="w-5 h-5" />}
@@ -57,7 +57,7 @@ export function SelectionPage({ onContinue, isDarkMode, toggleTheme, osmnxEnable
                         localStorage.removeItem("userName");
                         window.location.reload();
                     }}
-                    className={`px-4 py-2 rounded-lg shadow-lg font-bold transition-transform hover:scale-105 ${isDarkMode ? "bg-lime-600 text-white" : "bg-lime-500 text-white"}`}
+                    className={`px-4 py-2.5 rounded-lg shadow-lg font-bold transition-transform hover:scale-105 ${isDarkMode ? "bg-lime-600 text-white" : "bg-lime-500 text-white"}`}
                 >
                     Logout
                 </button>

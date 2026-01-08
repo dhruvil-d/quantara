@@ -19,6 +19,8 @@ import {
   Info,
   TriangleAlert,
   FileText,
+  CheckCircle,
+  Send,
 } from "lucide-react";
 import { ReportModal } from "./ReportModal";
 
@@ -98,6 +100,7 @@ export function MapView({ route, isDarkMode = false, onSimulate, onReroute, onRo
   const [originalRouteData, setOriginalRouteData] = React.useState<any>(null);
   const [selectedRerouteData, setSelectedRerouteData] = React.useState<Route | null>(null);
   const [simulationCompleted, setSimulationCompleted] = React.useState(false);
+  const [showDriverNotification, setShowDriverNotification] = React.useState(false);
 
   React.useEffect(() => {
     if (instabilityPopupPos && popupMarkerRef.current) {
@@ -458,6 +461,14 @@ export function MapView({ route, isDarkMode = false, onSimulate, onReroute, onRo
 
     setIsSimulating(true);
     setCoveredIndex(0);
+
+    // Show driver notification popup immediately when reroute starts
+    setShowDriverNotification(true);
+
+    // Auto-dismiss after 7 seconds
+    setTimeout(() => {
+      setShowDriverNotification(false);
+    }, 7000);
 
     // Sample ~20 points evenly distributed along the route
     const totalPoints = routePath.length;
@@ -1219,11 +1230,51 @@ export function MapView({ route, isDarkMode = false, onSimulate, onReroute, onRo
                   }`}
               >
                 <TrendingUp className="w-4 h-4 inline mr-2" />
-                {isSimulating ? 'Simulating...' : 'Start Trip'}
+                {isSimulating ? 'Trip in Progress...' : 'Start Trip'}
               </button>
             )}
           </div>
         </div>
+
+        {/* Driver Notification Popup */}
+        <AnimatePresence>
+          {showDriverNotification && (
+            <motion.div
+              initial={{ opacity: 0, y: 50, scale: 0.9 }}
+              animate={{ opacity: 1, y: 0, scale: 1 }}
+              exit={{ opacity: 0, y: 20, scale: 0.95 }}
+              transition={{ type: "spring", damping: 20, stiffness: 300 }}
+              className={`fixed bottom-24 left-1/2 transform -translate-x-1/2 z-50 px-6 py-4 rounded-2xl shadow-2xl border backdrop-blur-xl max-w-md ${isDarkMode
+                ? 'bg-gray-800/95 border-lime-500/30'
+                : 'bg-white/95 border-lime-500/40'
+                }`}
+            >
+              <div className="flex items-center gap-4">
+                <div className={`w-12 h-12 rounded-full flex items-center justify-center ${isDarkMode ? 'bg-lime-500/20' : 'bg-lime-100'}`}>
+                  <Send className={`w-6 h-6 ${isDarkMode ? 'text-lime-400' : 'text-lime-600'}`} />
+                </div>
+                <div className="flex-1">
+                  <div className="flex items-center gap-2 mb-1">
+                    <CheckCircle className={`w-4 h-4 ${isDarkMode ? 'text-lime-400' : 'text-lime-600'}`} />
+                    <span className={`text-sm font-semibold ${isDarkMode ? 'text-lime-400' : 'text-lime-600'}`}>
+                      Agent Update
+                    </span>
+                  </div>
+                  <p className={`text-sm ${isDarkMode ? 'text-gray-200' : 'text-gray-700'}`}>
+                    New updated route information has been shared with the drivers.
+                  </p>
+                </div>
+              </div>
+              {/* Progress bar for auto-dismiss */}
+              <motion.div
+                initial={{ width: "100%" }}
+                animate={{ width: "0%" }}
+                transition={{ duration: 7, ease: "linear" }}
+                className={`absolute bottom-0 left-0 h-1 rounded-b-2xl ${isDarkMode ? 'bg-lime-500' : 'bg-lime-500'}`}
+              />
+            </motion.div>
+          )}
+        </AnimatePresence>
 
         {/* Report Modal */}
         <ReportModal

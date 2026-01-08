@@ -54,6 +54,7 @@ export interface Route {
     reasoning: string;
   } | null;
   analysisData?: any; // For Chatbot context
+  driverNumbers?: string[]; // Driver phone numbers (up to 5)
 }
 
 const mockRoutes: Route[] = [
@@ -684,8 +685,8 @@ export default function App() {
                                 window.location.reload();
                               }}
                               className={`flex items-center gap-3 px-3 py-2 rounded-lg transition-colors ${isDarkMode
-                                  ? 'hover:bg-gray-700 text-sm font-medium text-gray-200'
-                                  : 'hover:bg-gray-50 text-sm font-medium text-gray-700'
+                                ? 'hover:bg-gray-700 text-sm font-medium text-gray-200'
+                                : 'hover:bg-gray-50 text-sm font-medium text-gray-700'
                                 }`}
                             >
                               <div className={`w-8 h-8 rounded-full flex items-center justify-center ${isDarkMode ? 'bg-gray-700 text-lime-400' : 'bg-gray-100 text-lime-600'

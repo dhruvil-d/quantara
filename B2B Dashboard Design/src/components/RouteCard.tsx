@@ -1,8 +1,9 @@
 import * as React from "react";
 
 import { Route } from "../App";
-import { Clock, DollarSign, Leaf, AlertTriangle, Phone, MessageCircle, ArrowRight } from "lucide-react";
+import { Clock, DollarSign, Leaf, AlertTriangle, MessageCircle, ArrowRight } from "lucide-react";
 import { Badge } from "./ui/badge";
+import { DriverNumbersPopover } from "./DriverNumbersPopover";
 
 interface RouteCardProps {
   route: Route;
@@ -171,12 +172,12 @@ export function RouteCard({ route, isSelected, onClick, onChatClick, isDarkMode 
           <span className={isDarkMode ? 'text-gray-300' : 'text-gray-700'}>{route.courier.name}</span>
         </div>
         <div className="flex items-center gap-2">
-          <button className={`w-7 h-7 rounded-full flex items-center justify-center transition-colors ${isDarkMode
-            ? 'bg-gray-600 hover:bg-gray-500'
-            : 'bg-gray-100 hover:bg-gray-200'
-            }`}>
-            <Phone className={`w-3.5 h-3.5 ${isDarkMode ? 'text-gray-300' : 'text-gray-600'}`} />
-          </button>
+          <DriverNumbersPopover
+            routeId={route.id}
+            dbRouteId={(route as any).dbRouteId}
+            driverNumbers={route.driverNumbers}
+            isDarkMode={isDarkMode}
+          />
           <button
             onClick={(e) => {
               e.stopPropagation();

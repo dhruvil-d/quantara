@@ -85,8 +85,35 @@ export function ReportModal({
     if (!isOpen) return null;
 
     const handleDownloadPDF = async () => {
-        // In a full implementation, this would call the backend to generate/download PDF
-        alert("PDF download functionality - Backend endpoint needed");
+        try {
+            const response = await fetch('http://localhost:5000/download-report', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    comparisonReport,
+                    originalRoute,
+                    newRoute
+                })
+            });
+
+            if (!response.ok) {
+                throw new Error('Failed to generate report');
+            }
+
+            // Get the blob and create download link
+            const blob = await response.blob();
+            const url = window.URL.createObjectURL(blob);
+            const link = document.createElement('a');
+            link.href = url;
+            link.download = 'reroute_report.pdf';
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+            window.URL.revokeObjectURL(url);
+        } catch (error) {
+            console.error('Download failed:', error);
+            alert('Failed to download report. Please try again.');
+        }
     };
 
     const getSentimentIcon = (direction: string) => {

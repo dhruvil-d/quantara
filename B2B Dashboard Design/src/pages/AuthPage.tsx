@@ -1,10 +1,28 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import axios from "axios";
-import { Eye, EyeOff } from "lucide-react";
+import { Eye, EyeOff, Sun, Moon } from "lucide-react";
 
 type Mode = "choice" | "login" | "signup";
 
 export default function AuthPage() {
+  const [isDarkMode, setIsDarkMode] = useState(() => {
+    // Check localStorage or system preference
+    const saved = localStorage.getItem('theme');
+    if (saved) return saved === 'dark';
+    return window.matchMedia('(prefers-color-scheme: dark)').matches;
+  });
+
+  useEffect(() => {
+    if (isDarkMode) {
+      document.documentElement.classList.add('dark');
+      localStorage.setItem('theme', 'dark');
+    } else {
+      document.documentElement.classList.remove('dark');
+      localStorage.setItem('theme', 'light');
+    }
+  }, [isDarkMode]);
+
+  const toggleTheme = () => setIsDarkMode(!isDarkMode);
   const [mode, setMode] = useState<Mode>("choice"); // Start with choice (Sign In / Sign Up buttons)
   const [form, setForm] = useState({
     name: "",
@@ -59,6 +77,19 @@ export default function AuthPage() {
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-gray-100 dark:bg-gray-900 transition-colors duration-300">
+      {/* Theme Toggle Button */}
+      <button
+        onClick={toggleTheme}
+        className="fixed top-6 right-6 p-3 rounded-full shadow-lg transition-all duration-300 hover:scale-110 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700"
+        title={isDarkMode ? 'Switch to light mode' : 'Switch to dark mode'}
+      >
+        {isDarkMode ? (
+          <Sun className="w-5 h-5 text-yellow-500" />
+        ) : (
+          <Moon className="w-5 h-5 text-gray-600" />
+        )}
+      </button>
+
       <div className="bg-white dark:bg-gray-800 p-8 rounded-xl shadow-2xl w-full max-w-md border border-gray-200 dark:border-gray-700">
 
         <div className="text-center mb-8">

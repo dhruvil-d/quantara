@@ -110,6 +110,18 @@ const RecommendedRouteSchema = new mongoose.Schema({
     // Path to generated PDF report (for reroute)
     report_pdf_path: String,
 
+    // Driver phone numbers (up to 5 per route)
+    driver_numbers: {
+        type: [String],
+        default: [],
+        validate: {
+            validator: function (arr) {
+                return arr.length <= 5;
+            },
+            message: 'Maximum 5 driver numbers allowed per route'
+        }
+    },
+
     createdAt: {
         type: Date,
         default: Date.now

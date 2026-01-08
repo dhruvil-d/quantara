@@ -1422,6 +1422,225 @@ app.post("/reroute", async (req, res) => {
 });
 
 // -----------------------------
+// 📞 Driver Numbers Management
+// -----------------------------
+
+// GET driver numbers for a route
+app.get("/driver-numbers/:routeId", async (req, res) => {
+    const { routeId } = req.params;
+    log(`GET /driver-numbers/${routeId}`);
+
+    try {
+        const route = await RecommendedRoute.findById(routeId);
+        if (!route) {
+            // Try to find by source/destination for rerouted routes
+            log(`Route ${routeId} not found by ID, returning empty array`);
+            return res.json({ driver_numbers: [] });
+        }
+
+        log(`Found ${route.driver_numbers?.length || 0} driver numbers for route ${routeId}`);
+        res.json({ driver_numbers: route.driver_numbers || [] });
+    } catch (err) {
+        log(`Error fetching driver numbers: ${err.message}`, "ERROR");
+        res.status(500).json({ error: "Failed to fetch driver numbers" });
+    }
+});
+
+// PUT (update) driver numbers for a route
+app.put("/driver-numbers/:routeId", async (req, res) => {
+    const { routeId } = req.params;
+    const { driver_numbers } = req.body;
+    log(`PUT /driver-numbers/${routeId} - Numbers: ${JSON.stringify(driver_numbers)}`);
+
+    // Validate input
+    if (!Array.isArray(driver_numbers)) {
+        return res.status(400).json({ error: "driver_numbers must be an array" });
+    }
+    if (driver_numbers.length > 5) {
+        return res.status(400).json({ error: "Maximum 5 driver numbers allowed" });
+    }
+
+    try {
+        const route = await RecommendedRoute.findByIdAndUpdate(
+            routeId,
+            { driver_numbers: driver_numbers },
+            { new: true, runValidators: true }
+        );
+
+        if (!route) {
+            log(`Route ${routeId} not found for update`, "ERROR");
+            return res.status(404).json({ error: "Route not found" });
+        }
+
+        log(`Updated driver numbers for route ${routeId}: ${driver_numbers.length} numbers saved`);
+        res.json({ driver_numbers: route.driver_numbers, success: true });
+    } catch (err) {
+        log(`Error updating driver numbers: ${err.message}`, "ERROR");
+        res.status(500).json({ error: "Failed to update driver numbers" });
+    }
+});
+
+// Copy driver numbers from original route to new route (for reroutes)
+app.post("/copy-driver-numbers", async (req, res) => {
+    const { fromRouteId, toRouteId } = req.body;
+    log(`POST /copy-driver-numbers from ${fromRouteId} to ${toRouteId}`);
+
+    try {
+        const fromRoute = await RecommendedRoute.findById(fromRouteId);
+        if (!fromRoute || !fromRoute.driver_numbers || fromRoute.driver_numbers.length === 0) {
+            log(`No driver numbers to copy from route ${fromRouteId}`);
+            return res.json({ copied: 0, driver_numbers: [] });
+        }
+
+        const toRoute = await RecommendedRoute.findByIdAndUpdate(
+            toRouteId,
+            { driver_numbers: fromRoute.driver_numbers },
+            { new: true }
+        );
+
+        if (!toRoute) {
+            log(`Target route ${toRouteId} not found`, "ERROR");
+            return res.status(404).json({ error: "Target route not found" });
+        }
+
+        log(`Copied ${fromRoute.driver_numbers.length} driver numbers to route ${toRouteId}`);
+        res.json({ copied: fromRoute.driver_numbers.length, driver_numbers: toRoute.driver_numbers });
+    } catch (err) {
+        log(`Error copying driver numbers: ${err.message}`, "ERROR");
+        res.status(500).json({ error: "Failed to copy driver numbers" });
+    }
+});
+
+// -----------------------------
+// 📄 Report Download (PDF)
+// -----------------------------
+
+import PDFDocument from "pdfkit";
+
+app.post("/download-report", async (req, res) => {
+    log("POST /download-report");
+    const { comparisonReport, originalRoute, newRoute } = req.body;
+
+    try {
+        // Create PDF document
+        const doc = new PDFDocument({ margin: 50 });
+
+        // Set response headers for PDF download
+        res.setHeader('Content-Type', 'application/pdf');
+        res.setHeader('Content-Disposition', 'attachment; filename="reroute_report.pdf"');
+
+        // Pipe the PDF to the response
+        doc.pipe(res);
+
+        // Title
+        doc.fontSize(24).fillColor('#84cc16').text('QUANTARA', { align: 'center' });
+        doc.fontSize(12).fillColor('#666666').text('Reroute Analysis Report', { align: 'center' });
+        doc.moveDown();
+
+        // Generated timestamp
+        const timestamp = new Date().toLocaleString('en-US', {
+            dateStyle: 'full',
+            timeStyle: 'short'
+        });
+        doc.fontSize(10).fillColor('#888888').text(`Generated: ${timestamp}`, { align: 'center' });
+        doc.moveDown(2);
+
+        // Trip Summary Section
+        doc.fontSize(14).fillColor('#84cc16').text('TRIP SUMMARY');
+        doc.moveDown(0.5);
+        doc.fontSize(11).fillColor('#333333');
+        doc.text(`Original Route: ${originalRoute?.route_name || 'Unknown'}`);
+        doc.text(`Rerouted To: ${newRoute?.courier?.name || 'Unknown'}`);
+        doc.text(`Source: ${originalRoute?.source || 'Unknown'}`);
+        doc.text(`Destination: ${originalRoute?.destination || 'Unknown'}`);
+        doc.moveDown(1.5);
+
+        // Why Rerouting Occurred
+        doc.fontSize(14).fillColor('#dc2626').text('WHY REROUTING OCCURRED');
+        doc.moveDown(0.5);
+        doc.fontSize(11).fillColor('#333333');
+        if (originalRoute?.sentiment_analysis?.risk_factors?.length) {
+            originalRoute.sentiment_analysis.risk_factors.forEach((factor, idx) => {
+                doc.text(`${idx + 1}. ${factor}`);
+            });
+        } else {
+            doc.text('No specific risk factors identified');
+        }
+        doc.moveDown(1.5);
+
+        // Sentiment Change
+        if (comparisonReport?.sentiment_change) {
+            doc.fontSize(14).fillColor('#2563eb').text('SENTIMENT CHANGE');
+            doc.moveDown(0.5);
+            doc.fontSize(11).fillColor('#333333');
+            doc.text(`Direction: ${comparisonReport.sentiment_change.direction}`);
+            doc.text(`Change: ${comparisonReport.sentiment_change.percentage_change}`);
+            if (comparisonReport.sentiment_change.reason) {
+                doc.text(`Analysis: ${comparisonReport.sentiment_change.reason}`);
+            }
+            doc.moveDown(1.5);
+        }
+
+        // Comparison Metrics Table
+        doc.fontSize(14).fillColor('#7c3aed').text('COMPARISON METRICS');
+        doc.moveDown(0.5);
+        doc.fontSize(11).fillColor('#333333');
+
+        // Table header
+        const tableTop = doc.y;
+        doc.text('Factor', 50, tableTop);
+        doc.text('Original', 200, tableTop);
+        doc.text('After Reroute', 350, tableTop);
+        doc.moveDown(0.5);
+
+        // Draw a line
+        doc.strokeColor('#cccccc').lineWidth(1)
+            .moveTo(50, doc.y).lineTo(500, doc.y).stroke();
+        doc.moveDown(0.5);
+
+        // Table rows
+        const rowY1 = doc.y;
+        doc.text('Time', 50, rowY1);
+        doc.text(originalRoute?.time || '--', 200, rowY1);
+        doc.text(newRoute?.time || '--', 350, rowY1);
+        doc.moveDown();
+
+        const rowY2 = doc.y;
+        doc.text('Distance', 50, rowY2);
+        doc.text(originalRoute?.distance || '--', 200, rowY2);
+        doc.text(newRoute?.distance || '--', 350, rowY2);
+        doc.moveDown();
+
+        const rowY3 = doc.y;
+        doc.text('Cost', 50, rowY3);
+        doc.text(originalRoute?.cost || '--', 200, rowY3);
+        doc.text(newRoute?.cost || '--', 350, rowY3);
+        doc.moveDown(1.5);
+
+        // Conclusion - Reset x position to left margin after table
+        doc.x = 50;
+        doc.fontSize(14).fillColor('#84cc16').text('CONCLUSION', 50);
+        doc.moveDown(0.5);
+        doc.fontSize(11).fillColor('#333333');
+        doc.text(comparisonReport?.recommendation || comparisonReport?.summary ||
+            'Route was successfully rerouted to avoid identified risks. The new route provides an alternative path to the destination.', 50);
+        doc.moveDown(2);
+
+        // Footer
+        doc.fontSize(9).fillColor('#888888')
+            .text('Report generated by Quantara AI Route Intelligence', { align: 'center' });
+
+        // Finalize the PDF
+        doc.end();
+
+        log("PDF report generated and sent for download");
+    } catch (err) {
+        log(`Error generating report: ${err.message}`, "ERROR");
+        res.status(500).json({ error: "Failed to generate report" });
+    }
+});
+
+// -----------------------------
 // Start Server
 // -----------------------------
 const PORT = 5000;
