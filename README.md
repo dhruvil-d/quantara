@@ -10,13 +10,14 @@ Quantara provides intelligent route recommendations for B2B logistics by analyzi
 - **Carbon Footprint**: Emission calculations per route
 - **Road Quality**: OSM-based road type and weather assessment
 - **Weather Risks**: Real-time weather integration
+- **AI Chat Assistant**: Interactive route querying and context-aware support
 - **User Priorities**: Customizable weighting for decision factors
 
 ## 🏗️ Architecture
 
 ```
 quantara/
-├── B2B Dashboard Design/     # Frontend (React + TypeScript)
+├── B2B Dashboard Design/      # Frontend (React + TypeScript)
 ├── backend/                   # Node.js Express API
 ├── ml_module/                 # Python analysis engine
 │   ├── analysis/              # Individual analyzers
@@ -25,6 +26,9 @@ quantara/
 │   │   ├── carbon_analysis.py
 │   │   └── road_analysis.py
 │   ├── scoring/               # Resilience calculator
+│   ├── chatbot/               # AI Chatbot Service
+│   │   ├── chatbot_service.py
+│   │   └── chat_api.py
 │   ├── routes/                # Route fetching (Google Maps + OSRM)
 │   ├── main.py                # Orchestrator
 │   ├── run_analysis.py        # Entry point
@@ -82,18 +86,34 @@ where priorities sum to 1.0
 ### Prerequisites
 - Node.js 18+ and npm
 - Python 3.9+
-- Google Maps API key (optional, OSRM fallback available)
-- GraphHopper API key (for frontend map display)
+- MongoDB (local or cloud)
+- **Google Maps API key** (optional, OSRM fallback available)
+- **Gemini API key** (for AI scoring & chatbot)
+- **TheNewsAPI key** (for risk analysis)
+- **GraphHopper API key** (for frontend map display)
+- **Ollama** (for local AI Chatbot)
 
 ### Installation
 
 1. **Clone the repository**:
 ```bash
-git clone https://github.com/yourusername/quantara.git
+git clone https://github.com/mushxoxo/quantara.git
 cd quantara
 ```
 
 2. **Install Python dependencies**:
+It is recommended to use a virtual environment:
+```bash
+# Windows
+python -m venv venv
+venv\Scripts\activate
+
+# Mac/Linux
+python3 -m venv venv
+source venv/bin/activate
+```
+
+Then install the requirements:
 ```bash
 pip install -r requirements.txt
 ```
@@ -112,36 +132,65 @@ npm install
 cd ..
 ```
 
-5. **Configure environment variables**:
+5. **Setup Ollama (for AI Chatbot)**:
+   - Download and install Ollama from [ollama.com](https://ollama.com).
+   - Start the Ollama server (usually runs in background or via `ollama serve`).
+   - Pull the required Llama 3 model:
+     ```bash
+     ollama pull llama3
+     ```
 
-Create `.env` in the root directory:
+6. **Configure environment variables**:
+
+Create `.env` in the root directory. You can copy the example file:
+```bash
+cp .env.example .env
+```
+
+Or manually create it with the following keys:
 ```env
-# Google Maps API (optional - OSRM fallback available)
+# MAPPING & ROUTING
 GOOGLE_MAPS_API_KEY=your_google_maps_key
+OPENROUTESERVICE_API_KEY=your_ors_key    # Fallback
+GH_KEY=your_graphhopper_key              # Frontend display
 
-# GraphHopper (for frontend routing visualization)
-GH_KEY=your_graphhopper_key
+# AI & ANALYSIS
+GEMINI_API_KEY=your_gemini_key           # Scoring & reasoning
+NEWS_API_KEY=your_news_api_key           # Risk analysis
+
+# BACKEND
+MONGO_URI=mongodb://localhost:27017/quantara
+JWT_SECRET=your_secret_key
 ```
 
 ### Running the Application
+
+**Note**: Ensure the **Ollama server** is running in the background before starting the application.
 
 #### Option 1: Using launch.bat (Windows)
 ```bash
 launch.bat
 ```
-This opens two terminals automatically:
-- Terminal 1: Backend server (localhost:5000)
-- Terminal 2: Frontend dev server (localhost:5173)
+This opens **three** terminals automatically:
+- **Backend Server**: `localhost:5000`
+- **Chatbot Service**: `localhost:5002`
+- **Frontend App**: `localhost:5173`
 
 #### Option 2: Manual start
 
-**Backend**:
+1. **Start Backend**:
 ```bash
 cd backend
-npm start
+npm run server
 ```
 
-**Frontend**:
+2. **Start Chatbot Service** (New Terminal):
+```bash
+# Ensure your virtual environment is activated
+python ml_module/chatbot/chat_api.py
+```
+
+3. **Start Frontend** (New Terminal):
 ```bash
 cd "B2B Dashboard Design"
 npm run dev
@@ -149,86 +198,6 @@ npm run dev
 
 The frontend will be available at `http://localhost:5173`
 
-## 📡 API Endpoints
-
-### GET `/`
-Returns API information and available endpoints.
-
-### GET `/geocode?city=<name>`
-Converts city name to coordinates using Photon API.
-
-**Response**:
-```json
-{
-  "features": [
-    {
-      "geometry": {
-        "coordinates": [lon, lat]
-      }
-    }
-  ]
-}
-```
-
-### POST `/analyze-routes`
-Performs full route analysis with Google Maps + ML module.
-
-**Request**:
-```json
-{
-  "source": "Mumbai",
-  "destination": "Delhi",
-  "priorities": {
-    "time": 25,
-    "distance": 25,
-    "safety": 25,
-    "carbonEmission": 25
-  }
-}
-```
-
-**Response**:
-```json
-{
-  "routes": [
-    {
-      "id": "1",
-      "origin": "Mumbai",
-      "destination": "Delhi",
-      "resilienceScore": 8.5,
-      "status": "Recommended",
-      "time": "14 hrs",
-      "cost": "₹21,450",
-      "carbonEmission": "1152 kg CO₂",
-      "distance": "1430 km",
-      "geminiOutput": {
-        "weather_risk_score": 25,
-        "road_safety_score": 85,
-        "overall_resilience_score": 85
-      }
-    }
-  ],
-  "bestRoute": "Route 1",
-  "analysisComplete": true
-}
-```
-
-### POST `/rescore-routes`
-Re-calculates resilience scores with new priorities (uses cached route data).
-
-**Request**:
-```json
-{
-  "source": "Mumbai",
-  "destination": "Delhi",
-  "priorities": {
-    "time": 40,
-    "distance": 20,
-    "safety": 20,
-    "carbonEmission": 20
-  }
-}
-```
 
 ## 🧪 Testing
 
@@ -295,6 +264,7 @@ Routes are classified based on resilience score (0-100):
 
 ### ML Module
 - Python 3.9+
+- **Ollama (Local LLM)**
 - Google Maps API (routing)
 - OSRM (fallback routing)
 - OSMnx (road network analysis)
@@ -339,6 +309,11 @@ Routes are classified based on resilience score (0-100):
 ### OSMnx errors
 - OSMnx requires additional system dependencies (GDAL)
 - If unavailable, system uses fallback road type estimation
+
+### Ollama errors
+- **Connection refused**: Ensure Ollama is running (`ollama serve`)
+- **Model not found**: Run `ollama pull llama3` to download the required model
+- **Slow response**: Local LLM performance depends on your GPU/CPU capabilities
 
 ## 📄 License
 
