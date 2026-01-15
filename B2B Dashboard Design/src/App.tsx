@@ -163,7 +163,7 @@ export default function App() {
   const [rerouteOptions, setRerouteOptions] = useState<Route[]>([]);
 
   const [isIntegrationsOpen, setIsIntegrationsOpen] = useState(false);
-  const [isDarkMode, setIsDarkMode] = useState(true);
+  const [isDarkMode, setIsDarkMode] = useState(false);
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [activeRightTab, setActiveRightTab] = useState<'stats' | 'news'>('news');
   const [priorities, setPriorities] = useState({ time: 25, distance: 25, safety: 25, carbonEmission: 25 });

@@ -870,12 +870,15 @@ export function MapView({ route, isDarkMode = false, onSimulate, onReroute, onRo
                       </div>
                     ) : (
                       <div className="p-3 max-w-xs">
-                        <div className="flex items-center gap-2 mb-2 text-amber-500">
-                          <TriangleAlert className="w-5 h-5" />
-                          <span className="font-bold text-sm uppercase tracking-wide">Instability Ahead</span>
+                        <div className="flex flex-col items-center mb-2">
+                          <span className="text-red-600 text-5xl font-bold mb-1 leading-none">!</span>
+                          <div className="flex items-center gap-2 text-red-600">
+                            <TriangleAlert className="w-5 h-5" />
+                            <span className="font-bold text-sm uppercase tracking-wide">Instability Ahead</span>
+                          </div>
                         </div>
-                        <p className="text-gray-600 text-xs mb-4 leading-relaxed dark:text-gray-300">
-                          Severe weather disruption predicted on the upcoming segment. Efficiency is dropping rapidly.
+                        <p className="text-gray-600 text-xs mb-4 leading-relaxed dark:text-gray-300 text-center font-medium">
+                          Instability ahead which reduces the efficiency, find alternative paths instead.
                         </p>
                         <button
                           onClick={(e) => {
@@ -950,7 +953,46 @@ export function MapView({ route, isDarkMode = false, onSimulate, onReroute, onRo
           </MapContainer>
 
           {/* Efficiency Score (using resilience score from ML module) */}
-          <div className="absolute top-6 right-6 flex gap-3 z-[400]">
+          <div className="absolute top-6 right-6 flex gap-3 z-[400] items-start">
+            {/* Driver Notification Popup */}
+            <AnimatePresence>
+              {showDriverNotification && (
+                <motion.div
+                  initial={{ opacity: 0, x: 20, scale: 0.9 }}
+                  animate={{ opacity: 1, x: 0, scale: 1 }}
+                  exit={{ opacity: 0, x: 20, scale: 0.95 }}
+                  transition={{ type: "spring", damping: 20, stiffness: 300 }}
+                  className={`px-4 py-3 rounded-xl shadow-lg border backdrop-blur-xl max-w-sm ${isDarkMode
+                    ? 'bg-gray-800/90 border-lime-500/30'
+                    : 'bg-white/90 border-lime-500/40'
+                    }`}
+                >
+                  <div className="flex items-center gap-3">
+                    <div className={`w-10 h-10 rounded-full flex items-center justify-center ${isDarkMode ? 'bg-lime-500/20' : 'bg-lime-100'}`}>
+                      <Send className={`w-5 h-5 ${isDarkMode ? 'text-lime-400' : 'text-lime-600'}`} />
+                    </div>
+                    <div>
+                      <div className="flex items-center gap-2 mb-0.5">
+                        <CheckCircle className={`w-3.5 h-3.5 ${isDarkMode ? 'text-lime-400' : 'text-lime-600'}`} />
+                        <span className={`text-xs font-semibold ${isDarkMode ? 'text-lime-400' : 'text-lime-600'}`}>
+                          Agent Update
+                        </span>
+                      </div>
+                      <p className={`text-xs ${isDarkMode ? 'text-gray-200' : 'text-gray-700'} leading-tight`}>
+                        Route info shared with drivers.
+                      </p>
+                    </div>
+                  </div>
+                  {/* Progress bar for auto-dismiss */}
+                  <motion.div
+                    initial={{ width: "100%" }}
+                    animate={{ width: "0%" }}
+                    transition={{ duration: 7, ease: "linear" }}
+                    className={`absolute bottom-0 left-0 h-0.5 rounded-b-xl ${isDarkMode ? 'bg-lime-500' : 'bg-lime-500'}`}
+                  />
+                </motion.div>
+              )}
+            </AnimatePresence>
             <motion.div
               initial={false}
               animate={{ width: isGeminiOutputOpen ? 384 : "auto" }}
@@ -1236,45 +1278,7 @@ export function MapView({ route, isDarkMode = false, onSimulate, onReroute, onRo
           </div>
         </div>
 
-        {/* Driver Notification Popup */}
-        <AnimatePresence>
-          {showDriverNotification && (
-            <motion.div
-              initial={{ opacity: 0, y: 50, scale: 0.9 }}
-              animate={{ opacity: 1, y: 0, scale: 1 }}
-              exit={{ opacity: 0, y: 20, scale: 0.95 }}
-              transition={{ type: "spring", damping: 20, stiffness: 300 }}
-              className={`fixed bottom-24 left-1/2 transform -translate-x-1/2 z-50 px-6 py-4 rounded-2xl shadow-2xl border backdrop-blur-xl max-w-md ${isDarkMode
-                ? 'bg-gray-800/95 border-lime-500/30'
-                : 'bg-white/95 border-lime-500/40'
-                }`}
-            >
-              <div className="flex items-center gap-4">
-                <div className={`w-12 h-12 rounded-full flex items-center justify-center ${isDarkMode ? 'bg-lime-500/20' : 'bg-lime-100'}`}>
-                  <Send className={`w-6 h-6 ${isDarkMode ? 'text-lime-400' : 'text-lime-600'}`} />
-                </div>
-                <div className="flex-1">
-                  <div className="flex items-center gap-2 mb-1">
-                    <CheckCircle className={`w-4 h-4 ${isDarkMode ? 'text-lime-400' : 'text-lime-600'}`} />
-                    <span className={`text-sm font-semibold ${isDarkMode ? 'text-lime-400' : 'text-lime-600'}`}>
-                      Agent Update
-                    </span>
-                  </div>
-                  <p className={`text-sm ${isDarkMode ? 'text-gray-200' : 'text-gray-700'}`}>
-                    New updated route information has been shared with the drivers.
-                  </p>
-                </div>
-              </div>
-              {/* Progress bar for auto-dismiss */}
-              <motion.div
-                initial={{ width: "100%" }}
-                animate={{ width: "0%" }}
-                transition={{ duration: 7, ease: "linear" }}
-                className={`absolute bottom-0 left-0 h-1 rounded-b-2xl ${isDarkMode ? 'bg-lime-500' : 'bg-lime-500'}`}
-              />
-            </motion.div>
-          )}
-        </AnimatePresence>
+
 
         {/* Report Modal */}
         <ReportModal
