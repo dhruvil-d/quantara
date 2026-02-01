@@ -1,6 +1,9 @@
+/* stylelint-disable at-rule-no-unknown */
+/* postcss-bem-linter: ignore */
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
+/* stylelint-enable at-rule-no-unknown */
 
 @layer base {
     :root {
@@ -24,6 +27,47 @@
         --input: 214.3 31.8% 91.4%;
         --ring: 222.2 84% 4.9%;
         --radius: 0.5rem;
+
+        /* Enhanced Design System Tokens */
+
+        /* Color Palette */
+        --lime-primary: #84cc16;
+        --lime-secondary: #65a30d;
+        --lime-glow: rgba(132, 204, 22, 0.2);
+
+        --amber-primary: #f59e0b;
+        --amber-glow: rgba(245, 158, 11, 0.2);
+
+        --red-primary: #ef4444;
+        --red-glow: rgba(239, 68, 68, 0.2);
+
+        --emerald-primary: #10b981;
+        --emerald-glow: rgba(16, 185, 129, 0.2);
+
+        /* Light Mode Backgrounds */
+        --bg-primary: #ffffff;
+        --bg-secondary: #f9fafb;
+        --bg-tertiary: #f3f4f6;
+
+        /* Typography Scale */
+        --text-hero: 32px;
+        --text-h1: 24px;
+        --text-h2: 18px;
+        --text-body: 14px;
+        --text-caption: 12px;
+        --text-micro: 10px;
+
+        /* Spacing Scale */
+        --space-xs: 4px;
+        --space-sm: 8px;
+        --space-md: 16px;
+        --space-lg: 24px;
+        --space-xl: 32px;
+
+        /* Transitions */
+        --transition-fast: 150ms cubic-bezier(0.4, 0, 0.2, 1);
+        --transition-base: 250ms cubic-bezier(0.4, 0, 0.2, 1);
+        --transition-slow: 350ms cubic-bezier(0.4, 0, 0.2, 1);
     }
 
     .dark {
@@ -46,6 +90,11 @@
         --border: 217.2 32.6% 17.5%;
         --input: 217.2 32.6% 17.5%;
         --ring: 212.7 26.8% 83.9%;
+
+        /* Enhanced Dark Mode Backgrounds */
+        --bg-primary: #0f172a;
+        --bg-secondary: #1e293b;
+        --bg-tertiary: #334155;
     }
 }
 
@@ -57,6 +106,197 @@
     body {
         background-color: hsl(var(--background));
         color: hsl(var(--foreground));
+        transition: background-color 0.3s ease-in-out, color 0.3s ease-in-out;
+    }
+
+    /* Smooth theme transitions for all elements */
+    * {
+        transition-property: background-color, border-color, color, fill, stroke;
+        transition-duration: 0.2s;
+        transition-timing-function: ease-in-out;
+    }
+
+    /* Preserve specific animation transitions */
+    *[class*="animate-"],
+    *[class*="transition-all"],
+    *[class*="transition-transform"] {
+        transition-property: all;
+    }
+}
+
+/* ========================================
+   GLASSMORPHISM UTILITIES
+   ======================================== */
+@layer components {
+    .glass-panel {
+        background: rgba(255, 255, 255, 0.6);
+        backdrop-filter: blur(20px);
+        border: 1px solid rgba(0, 0, 0, 0.1);
+        box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
+    }
+
+    .dark .glass-panel {
+        background: rgba(25, 25, 35, 0.7);
+        backdrop-filter: blur(20px);
+        border: 1px solid rgba(255, 255, 255, 0.1);
+        box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+    }
+
+    .glass-card {
+        background: rgba(255, 255, 255, 0.8);
+        backdrop-filter: blur(12px);
+        border: 1px solid rgba(0, 0, 0, 0.08);
+        box-shadow: 0 4px 16px rgba(0, 0, 0, 0.08);
+    }
+
+    .dark .glass-card {
+        background: rgba(30, 41, 59, 0.6);
+        backdrop-filter: blur(12px);
+        border: 1px solid rgba(255, 255, 255, 0.08);
+        box-shadow: 0 4px 16px rgba(0, 0, 0, 0.2);
+    }
+
+    /* Gradient CTAs */
+    .cta-primary {
+        background: linear-gradient(135deg, var(--lime-primary) 0%, var(--lime-secondary) 100%);
+        box-shadow: 0 4px 20px var(--lime-glow);
+        transition: all var(--transition-base);
+    }
+
+    .cta-primary:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 6px 28px rgba(132, 204, 22, 0.4);
+    }
+
+    .cta-primary:active {
+        transform: translateY(0);
+        box-shadow: 0 2px 12px var(--lime-glow);
+    }
+}
+
+/* ========================================
+   MICRO-INTERACTION ANIMATIONS
+   ======================================== */
+@layer utilities {
+
+    /* Hover Scale Effect */
+    .hover-scale {
+        transition: transform var(--transition-base), box-shadow var(--transition-base);
+    }
+
+    .hover-scale:hover {
+        transform: scale(1.02);
+        box-shadow: 0 10px 30px rgba(0, 0, 0, 0.15);
+    }
+
+    .dark .hover-scale:hover {
+        box-shadow: 0 10px 30px rgba(0, 0, 0, 0.4);
+    }
+
+    /* Glow Effect */
+    .glow-lime {
+        box-shadow: 0 0 20px var(--lime-glow);
+    }
+
+    .glow-amber {
+        box-shadow: 0 0 20px var(--amber-glow);
+    }
+
+    .glow-red {
+        box-shadow: 0 0 20px var(--red-glow);
+    }
+
+    .glow-emerald {
+        box-shadow: 0 0 20px var(--emerald-glow);
+    }
+}
+
+/* ========================================
+   ANIMATION KEYFRAMES
+   ======================================== */
+@keyframes pulse-glow {
+
+    0%,
+    100% {
+        box-shadow: 0 0 20px var(--lime-glow);
+    }
+
+    50% {
+        box-shadow: 0 0 30px rgba(132, 204, 22, 0.4);
+    }
+}
+
+@keyframes slide-in-right {
+    from {
+        opacity: 0;
+        transform: translateX(20px);
+    }
+
+    to {
+        opacity: 1;
+        transform: translateX(0);
+    }
+}
+
+@keyframes bounce-in {
+    0% {
+        opacity: 0;
+        transform: scale(0.3);
+    }
+
+    50% {
+        opacity: 1;
+        transform: scale(1.05);
+    }
+
+    70% {
+        transform: scale(0.95);
+    }
+
+    100% {
+        transform: scale(1);
+    }
+}
+
+@keyframes draw-line {
+    from {
+        stroke-dashoffset: 1000;
+    }
+
+    to {
+        stroke-dashoffset: 0;
+    }
+}
+
+@keyframes count-up {
+    from {
+        transform: translateY(10px);
+        opacity: 0;
+    }
+
+    to {
+        transform: translateY(0);
+        opacity: 1;
+    }
+}
+
+@layer utilities {
+
+    /* Animation Classes */
+    .animate-pulse-glow {
+        animation: pulse-glow 2s ease-in-out infinite;
+    }
+
+    .animate-slide-in {
+        animation: slide-in-right 0.4s ease-out;
+    }
+
+    .animate-bounce-in {
+        animation: bounce-in 0.6s cubic-bezier(0.68, -0.55, 0.265, 1.55);
+    }
+
+    .animate-count-up {
+        animation: count-up 0.5s ease-out;
     }
 }
 
@@ -68,12 +308,10 @@
 /* Leaflet Dark Mode Overrides */
 .dark .leaflet-popup-content-wrapper,
 .dark .leaflet-popup-tip {
-    background-color: #1f2937;
-    /* gray-800 */
+    background-color: rgba(30, 41, 59, 0.95);
+    backdrop-filter: blur(12px);
     color: #e5e7eb;
-    /* gray-200 */
-    border: 1px solid #374151;
-    /* gray-700 */
+    border: 1px solid rgba(255, 255, 255, 0.1);
 }
 
 .dark .leaflet-popup-content-wrapper {
@@ -110,11 +348,11 @@
         border-radius: 20px;
         border: 2px solid transparent;
         background-clip: content-box;
+        transition: background-color var(--transition-base);
     }
 
     ::-webkit-scrollbar-thumb:hover {
-        background-color: #9ca3af;
-        /* gray-400 */
+        background-color: var(--lime-primary);
     }
 
     /* Dark mode scrollbar */
@@ -124,13 +362,6 @@
     }
 
     .dark ::-webkit-scrollbar-thumb:hover {
-        background-color: #65a30d;
-        /* lime-600 */
-    }
-
-    /* Light mode hover accent */
-    ::-webkit-scrollbar-thumb:hover {
-        background-color: #84cc16;
-        /* lime-500 */
+        background-color: var(--lime-secondary);
     }
 }

@@ -3,6 +3,7 @@ import * as React from "react";
 import { MapContainer, TileLayer, Marker, Popup, Polyline, useMap, CircleMarker } from "react-leaflet";
 import L from "leaflet";
 import axios from "axios";
+// Type declaration for @mapbox/polyline
 import polyline from "@mapbox/polyline"; // <-- Decode GraphHopper polyline
 import { motion, AnimatePresence } from "framer-motion";
 
@@ -638,7 +639,7 @@ export function MapView({ route, isDarkMode = false, onSimulate, onReroute, onRo
             const decodedPath = polyline.decode(route.overview_polyline);
             // Convert to Leaflet tuple format if needed (polyline.decode returns [lat, lon] which matches Leaflet)
             const decoded = polyline.decode(route.overview_polyline);
-            path = decoded.map((points) => {
+            path = decoded.map((points: [number, number]) => {
               const [lat, lon] = points;
               return [lat, lon] as [number, number];
             });
@@ -1264,11 +1265,9 @@ export function MapView({ route, isDarkMode = false, onSimulate, onReroute, onRo
               <button
                 onClick={handleSimulate}
                 disabled={isSimulating || isReroute}
-                className={`px-6 py-2.5 rounded-lg transition-all duration-300 transform hover:scale-105 active:scale-95 backdrop-blur-xl border-2 shadow-2xl ${isSimulating || isReroute
-                  ? isDarkMode ? 'bg-gray-600/50 border-gray-500/50 cursor-not-allowed text-gray-400' : 'bg-gray-400/50 border-gray-300/50 cursor-not-allowed text-gray-200'
-                  : isDarkMode
-                    ? 'bg-gradient-to-r from-lime-500/80 to-lime-600/80 border-white/20 shadow-lime-500/30 text-white'
-                    : 'bg-gradient-to-r from-lime-500/90 to-lime-600/90 border-white/40 shadow-lime-600/30 text-white'
+                className={`cta-primary px-6 py-2.5 rounded-lg font-medium text-white border-2 ${isSimulating || isReroute
+                  ? 'opacity-50 cursor-not-allowed'
+                  : 'animate-pulse-glow'
                   }`}
               >
                 <TrendingUp className="w-4 h-4 inline mr-2" />

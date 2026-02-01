@@ -14,6 +14,7 @@ import { Plug, Moon, Sun, GripVertical, GripHorizontal, Menu, X, LogOut } from "
 import { Panel, PanelGroup, PanelResizeHandle } from "react-resizable-panels";
 import { ChatWidget } from "./components/ChatWidget";
 import AuthWrapper from "./components/AuthWrapper";
+import { motion, AnimatePresence } from "framer-motion";
 
 export interface Route {
   id: string;
@@ -630,85 +631,123 @@ export default function App() {
                       <div className="relative flex items-center">
                         <button
                           onClick={() => setIsMenuOpen(!isMenuOpen)}
-                          className={`p-2 rounded-full shadow-lg transition-transform hover:scale-105 ${isDarkMode ? 'bg-gray-800 text-gray-200 hover:bg-gray-700' : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                          className={`p-2 rounded-full shadow-lg transition-all duration-300 hover:scale-110 active:scale-95 ${isDarkMode ? 'bg-gray-800 text-gray-200 hover:bg-gray-700' : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
                             }`}
                         >
-                          {isMenuOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
+                          <motion.div
+                            initial={false}
+                            animate={{ rotate: isMenuOpen ? 90 : 0 }}
+                            transition={{ duration: 0.3, ease: "easeInOut" }}
+                          >
+                            {isMenuOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
+                          </motion.div>
                         </button>
 
-                        {isMenuOpen && (
-                          <div className={`absolute right-0 top-full mt-2 w-64 p-2 rounded-xl shadow-xl border flex flex-col gap-2 z-50 ${isDarkMode
-                            ? 'bg-gray-800 border-gray-700'
-                            : 'bg-white border-gray-200'
-                            }`}>
-                            <button
-                              onClick={toggleTheme}
-                              className={`flex items-center gap-3 px-3 py-2 rounded-lg transition-colors ${isDarkMode
-                                ? 'hover:bg-gray-700 text-sm font-medium text-gray-200'
-                                : 'hover:bg-gray-50 text-sm font-medium text-gray-700'
+                        <AnimatePresence>
+                          {isMenuOpen && (
+                            <motion.div
+                              initial={{ opacity: 0, y: -10, scale: 0.95 }}
+                              animate={{ opacity: 1, y: 0, scale: 1 }}
+                              exit={{ opacity: 0, y: -10, scale: 0.95 }}
+                              transition={{ duration: 0.2, ease: "easeOut" }}
+                              className={`absolute right-0 top-full mt-2 w-64 p-2 rounded-xl shadow-xl border glass-panel flex flex-col gap-2 z-50 ${isDarkMode
+                                ? 'border-gray-700'
+                                : 'border-gray-200'
                                 }`}
                             >
-                              <div className={`w-8 h-8 rounded-full flex items-center justify-center ${isDarkMode ? 'bg-gray-700 text-yellow-400' : 'bg-gray-100 text-gray-600'
-                                }`}>
-                                {isDarkMode ? <Sun className="w-4 h-4" /> : <Moon className="w-4 h-4" />}
-                              </div>
-                              <span>{isDarkMode ? 'Light Mode' : 'Dark Mode'}</span>
-                            </button>
-                            <button
-                              onClick={() => {
-                                setView("selection");
-                                setIsMenuOpen(false);
-                              }}
-                              className={`flex items-center gap-3 px-3 py-2 rounded-lg transition-colors ${isDarkMode
-                                ? 'hover:bg-gray-700 text-sm font-medium text-gray-200'
-                                : 'hover:bg-gray-50 text-sm font-medium text-gray-700'
-                                }`}
-                            >
-                              <div className={`w-8 h-8 rounded-full flex items-center justify-center ${isDarkMode ? 'bg-gray-700 text-lime-400' : 'bg-gray-100 text-lime-600'
-                                }`}>
-                                <Plug className="w-4 h-4" />
-                              </div>
-                              <span>Change Route</span>
-                            </button>
-                            <label
-                              className={`flex items-center gap-3 px-3 py-2 rounded-lg transition-colors cursor-pointer ${isDarkMode
-                                ? 'hover:bg-gray-700 text-sm font-medium text-gray-200'
-                                : 'hover:bg-gray-50 text-sm font-medium text-gray-700'
-                                }`}
-                            >
-                              <div className={`w-8 h-8 rounded-full flex items-center justify-center ${isDarkMode ? 'bg-gray-700 text-blue-400' : 'bg-gray-100 text-blue-600'
-                                }`}>
-                                <input
-                                  type="checkbox"
-                                  className="rounded border-gray-400"
-                                  checked={osmnxEnabled}
-                                  onChange={(e) => setOsmnxEnabled(e.target.checked)}
-                                />
-                              </div>
-                              <span>Detailed Road Data (OSMnx)</span>
-                            </label>
-                            <div className="border-t border-gray-200 dark:border-gray-700 my-1"></div>
+                              <motion.button
+                                initial={{ opacity: 0, x: -10 }}
+                                animate={{ opacity: 1, x: 0 }}
+                                transition={{ delay: 0.05, duration: 0.2 }}
+                                onClick={toggleTheme}
+                                className={`flex items-center gap-3 px-3 py-2 rounded-lg transition-all hover:scale-[1.02] ${isDarkMode
+                                  ? 'hover:bg-gray-700/50 text-sm font-medium text-gray-200'
+                                  : 'hover:bg-gray-50 text-sm font-medium text-gray-700'
+                                  }`}
+                              >
+                                <motion.div
+                                  animate={{ rotate: isDarkMode ? 0 : 180 }}
+                                  transition={{ duration: 0.5, ease: "easeInOut" }}
+                                  className={`w-8 h-8 rounded-full flex items-center justify-center ${isDarkMode ? 'bg-gray-700 text-yellow-400' : 'bg-gray-100 text-gray-600'
+                                    }`}
+                                >
+                                  {isDarkMode ? <Sun className="w-4 h-4" /> : <Moon className="w-4 h-4" />}
+                                </motion.div>
+                                <span>{isDarkMode ? 'Light Mode' : 'Dark Mode'}</span>
+                              </motion.button>
 
-                            <button
-                              onClick={() => {
-                                localStorage.removeItem("token");
-                                localStorage.removeItem("userName");
-                                window.location.reload();
-                              }}
-                              className={`flex items-center gap-3 px-3 py-2 rounded-lg transition-colors ${isDarkMode
-                                ? 'hover:bg-gray-700 text-sm font-medium text-gray-200'
-                                : 'hover:bg-gray-50 text-sm font-medium text-gray-700'
-                                }`}
-                            >
-                              <div className={`w-8 h-8 rounded-full flex items-center justify-center ${isDarkMode ? 'bg-gray-700 text-lime-400' : 'bg-gray-100 text-lime-600'
-                                }`}>
-                                <LogOut className="w-4 h-4" />
-                              </div>
-                              <span>Logout</span>
-                            </button>
+                              <motion.button
+                                initial={{ opacity: 0, x: -10 }}
+                                animate={{ opacity: 1, x: 0 }}
+                                transition={{ delay: 0.1, duration: 0.2 }}
+                                onClick={() => {
+                                  setView("selection");
+                                  setIsMenuOpen(false);
+                                }}
+                                className={`flex items-center gap-3 px-3 py-2 rounded-lg transition-all hover:scale-[1.02] ${isDarkMode
+                                  ? 'hover:bg-gray-700/50 text-sm font-medium text-gray-200'
+                                  : 'hover:bg-gray-50 text-sm font-medium text-gray-700'
+                                  }`}
+                              >
+                                <div className={`w-8 h-8 rounded-full flex items-center justify-center ${isDarkMode ? 'bg-gray-700 text-lime-400' : 'bg-gray-100 text-lime-600'
+                                  }`}>
+                                  <Plug className="w-4 h-4" />
+                                </div>
+                                <span>Change Route</span>
+                              </motion.button>
 
-                          </div>
-                        )}
+                              <motion.label
+                                initial={{ opacity: 0, x: -10 }}
+                                animate={{ opacity: 1, x: 0 }}
+                                transition={{ delay: 0.15, duration: 0.2 }}
+                                className={`flex items-center gap-3 px-3 py-2 rounded-lg transition-all hover:scale-[1.02] cursor-pointer ${isDarkMode
+                                  ? 'hover:bg-gray-700/50 text-sm font-medium text-gray-200'
+                                  : 'hover:bg-gray-50 text-sm font-medium text-gray-700'
+                                  }`}
+                              >
+                                <div className={`w-8 h-8 rounded-full flex items-center justify-center ${isDarkMode ? 'bg-gray-700 text-blue-400' : 'bg-gray-100 text-blue-600'
+                                  }`}>
+                                  <input
+                                    type="checkbox"
+                                    className="rounded border-gray-400"
+                                    checked={osmnxEnabled}
+                                    onChange={(e) => setOsmnxEnabled(e.target.checked)}
+                                  />
+                                </div>
+                                <span>Detailed Road Data (OSMnx)</span>
+                              </motion.label>
+
+                              <motion.div
+                                initial={{ opacity: 0, scaleX: 0 }}
+                                animate={{ opacity: 1, scaleX: 1 }}
+                                transition={{ delay: 0.2, duration: 0.3 }}
+                                className="border-t border-gray-200 dark:border-gray-700 my-1"
+                              />
+
+                              <motion.button
+                                initial={{ opacity: 0, x: -10 }}
+                                animate={{ opacity: 1, x: 0 }}
+                                transition={{ delay: 0.25, duration: 0.2 }}
+                                onClick={() => {
+                                  localStorage.removeItem("token");
+                                  localStorage.removeItem("userName");
+                                  window.location.reload();
+                                }}
+                                className={`flex items-center gap-3 px-3 py-2 rounded-lg transition-all hover:scale-[1.02] ${isDarkMode
+                                  ? 'hover:bg-red-900/30 text-sm font-medium text-red-400'
+                                  : 'hover:bg-red-50 text-sm font-medium text-red-600'
+                                  }`}
+                              >
+                                <div className={`w-8 h-8 rounded-full flex items-center justify-center ${isDarkMode ? 'bg-red-900/30 text-red-400' : 'bg-red-100 text-red-600'
+                                  }`}>
+                                  <LogOut className="w-4 h-4" />
+                                </div>
+                                <span>Logout</span>
+                              </motion.button>
+
+                            </motion.div>
+                          )}
+                        </AnimatePresence>
                       </div>
                     }
                   />

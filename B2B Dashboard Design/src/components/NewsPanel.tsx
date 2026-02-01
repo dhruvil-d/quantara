@@ -140,9 +140,9 @@ export function NewsPanel({ cities, isDarkMode = false }: NewsPanelProps) {
     };
 
     return (
-        <div className={`rounded-xl shadow-lg border ${isDarkMode
-            ? 'bg-gray-800 border-gray-700'
-            : 'bg-white border-gray-200'
+        <div className={`rounded-xl shadow-lg border glass-card ${isDarkMode
+            ? 'border-gray-700'
+            : 'border-gray-200'
             } p-4`}>
             <div className="flex items-center justify-between mb-4">
                 <div className="flex items-center gap-2">
@@ -175,16 +175,18 @@ export function NewsPanel({ cities, isDarkMode = false }: NewsPanelProps) {
 
                 {articles.length > 0 && (
                     <div className="space-y-3">
-                        {articles.map((article) => (
+                        {/* Display all articles fetched (API returns up to 10, mock data has 7) */}
+                        {articles.map((article, index) => (
                             <a
                                 key={article.uuid}
                                 href={article.url}
                                 target="_blank"
                                 rel="noreferrer"
-                                className={`group block p-3 rounded-lg border transition-all hover:shadow-md ${isDarkMode
+                                className={`group block p-3 rounded-lg border hover-scale animate-slide-in ${isDarkMode
                                     ? 'bg-gray-900/50 border-gray-700 hover:border-lime-500/50'
                                     : 'bg-gray-50 border-gray-100 hover:border-lime-300'
                                     }`}
+                                style={{ animationDelay: `${index * 50}ms` }}
                             >
                                 <div className="flex gap-3">
                                     {article.image_url && (
@@ -217,6 +219,7 @@ export function NewsPanel({ cities, isDarkMode = false }: NewsPanelProps) {
                     </div>
                 )}
             </div>
+
 
             <div className={`mt-4 pt-3 border-t text-center ${isDarkMode ? 'border-gray-700' : 'border-gray-200'}`}>
                 <p className={`text-[10px] ${isDarkMode ? 'text-gray-500' : 'text-gray-400'}`}>

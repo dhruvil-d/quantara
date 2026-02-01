@@ -2835,5 +2835,304 @@
       ]
     },
     "comparison_report": null
+  },
+  "fcc052a8868990f7ae789fdcdb99cc43": {
+    "routes": {
+      "Route 2": {
+        "route_name": "The Deccan Efficiency Corridor",
+        "short_summary": "Offers the highest overall resilience and carbon efficiency, compensating for its standard distance.",
+        "reasoning": "Resilience is extremely high (78.05) due to superior infrastructure investment, likely utilizing modern expressways and dedicated freight lanes designed to minimize bottlenecks and external disruptions. The perfect carbon efficiency score suggests optimal design parameters, resulting in highly dependable and environmentally optimized logistical throughput.",
+        "intermediate_cities": [
+          {
+            "name": "Jhansi, Uttar Pradesh",
+            "lat": 25.4484,
+            "lon": 78.5685
+          },
+          {
+            "name": "Hyderabad, Telangana",
+            "lat": 17.385,
+            "lon": 78.4867
+          },
+          {
+            "name": "Nellore, Andhra Pradesh",
+            "lat": 14.4449,
+            "lon": 79.9864
+          }
+        ]
+      },
+      "Route 1": {
+        "route_name": "The Central Rapid Path",
+        "short_summary": "This route prioritizes directness and minimal distance, resulting in the lowest carbon efficiency and moderate resilience.",
+        "reasoning": "With the lowest resilience score (46.48) and lowest carbon efficiency (0.0), this route likely utilizes the most direct, albeit potentially older or heavily congested, sections of existing national highways. While short, the reliance on older infrastructure and heavy local traffic makes it susceptible to frequent, unpredictable delays, thereby significantly lowering operational stability and resilience.",
+        "intermediate_cities": [
+          {
+            "name": "Jhansi, Uttar Pradesh",
+            "lat": 25.4484,
+            "lon": 78.5685
+          },
+          {
+            "name": "Hyderabad, Telangana",
+            "lat": 17.385,
+            "lon": 78.4867
+          },
+          {
+            "name": "Nellore, Andhra Pradesh",
+            "lat": 14.4449,
+            "lon": 79.9864
+          }
+        ]
+      },
+      "Route 3": {
+        "route_name": "The High-Risk Bypass",
+        "short_summary": "Possesses the lowest overall resilience and highest weather risk, suggesting the use of secondary or regional highways.",
+        "reasoning": "The combination of the lowest resilience (45.04), highest weather risk (0.060), and lowest road safety score (0.816) indicates this path utilizes significant stretches of regional or secondary state highways (SH). These roads are less maintained and pass through more geographically challenging areas, making them highly vulnerable to weather events (flooding, landslides) which severely impact schedule predictability and operational stability.",
+        "intermediate_cities": [
+          {
+            "name": "Jhansi, Uttar Pradesh",
+            "lat": 25.4484,
+            "lon": 78.5685
+          },
+          {
+            "name": "Hyderabad, Telangana",
+            "lat": 17.385,
+            "lon": 78.4867
+          },
+          {
+            "name": "Nellore, Andhra Pradesh",
+            "lat": 14.4449,
+            "lon": 79.9864
+          }
+        ]
+      }
+    },
+    "news_sentiment": {
+      "sentiment_score": 0.65,
+      "risk_factors": [
+        "Temporary local traffic disruption due to rallies/events in major cities."
+      ],
+      "positive_factors": [
+        "Increased security infrastructure budget in Delhi",
+        "Emphasis on technology to improve security and potentially traffic management."
+      ],
+      "reasoning": "The overall sentiment is slightly positive (0.65) primarily driven by critical budgetary increases for security and technology infrastructure in the Delhi region, which benefits long-haul freight protection and stability, outweighing the minor, neutral impacts of the other two articles.",
+      "article_sentiments": [
+        {
+          "title": "Delhi Police budget up 4.6%;stress on tech, security infra",
+          "sentiment": "POSITIVE",
+          "impact": "Increased security budget and focus on technology improves freight safety and potential traffic management efficiency near the origin hub."
+        },
+        {
+          "title": "NCC cadets from Republic Day camp welcomed with rally in Bengaluru",
+          "sentiment": "NEUTRAL",
+          "impact": "Local, temporary event traffic disruption; no structural impact on corridor resilience."
+        },
+        {
+          "title": "The name\u2019s bond! MCD gets another shot at fund-raising",
+          "sentiment": "NEUTRAL",
+          "impact": "General municipal fund-raising; too indirect to immediately or significantly affect long-distance freight corridor performance or resilience."
+        }
+      ]
+    },
+    "comparison_report": null
+  },
+  "9eb5aea8e3c9e3b450d73ea1dc4373ff": {
+    "routes": {
+      "Route 1": {
+        "route_name": "The Core Arterial Highway",
+        "short_summary": "This route is the most direct path in terms of mileage but suffers from poor environmental performance and average resilience due to potential traffic bottlenecks in urban access zones.",
+        "reasoning": "Achieving the shortest normalized distance suggests the route utilizes the most direct existing national highways, which often traverse older infrastructure segments and congested entry points. The significantly low carbon efficiency (0.0) implies frequent stop-start traffic and suboptimal speed profiles, contributing to the modest overall resilience score (46.5) despite the mileage advantage.",
+        "intermediate_cities": [
+          {
+            "name": "Agra",
+            "lat": 27.1767,
+            "lon": 78.0081
+          },
+          {
+            "name": "Nagpur",
+            "lat": 21.1458,
+            "lon": 79.0882
+          },
+          {
+            "name": "Bengaluru",
+            "lat": 12.9716,
+            "lon": 77.5946
+          }
+        ]
+      },
+      "Route 2": {
+        "route_name": "The Platinum Corridor",
+        "short_summary": "This premium route offers maximum reliability, safety, and carbon efficiency, compensating for its slightly extended distance with superior overall resilience (78.0) and minimal operational risk.",
+        "reasoning": "The exceptionally high resilience score is based on the combination of superior road safety (0.834), lowest weather risk, and optimal carbon efficiency (1.0). This suggests the route leverages modern, high-grade highway infrastructure, extensive bypasses, and state-of-the-art monitoring systems, minimizing external disruptions and maximizing predictable throughput, even though it represents the longest normalized distance.",
+        "intermediate_cities": [
+          {
+            "name": "Agra",
+            "lat": 27.1767,
+            "lon": 78.0081
+          },
+          {
+            "name": "Nagpur",
+            "lat": 21.1458,
+            "lon": 79.0882
+          },
+          {
+            "name": "Bengaluru",
+            "lat": 12.9716,
+            "lon": 77.5946
+          }
+        ]
+      },
+      "Route 3": {
+        "route_name": "The Monsoon Bypass",
+        "short_summary": "Characterized by the highest susceptibility to weather events and the lowest road safety metrics, this moderate-distance path poses the greatest risks to delivery schedule predictability.",
+        "reasoning": "The lowest overall resilience score (45.0) is a direct result of weak underlying metrics, specifically the lowest road safety rating (0.813) and the highest vulnerability to adverse weather (0.060). This route likely includes lower-tier infrastructure or connects through regional roads that are poorly maintained, prone to seasonal damage (e.g., during monsoons), and lack the redundancy necessary to maintain flow during unforeseen incidents.",
+        "intermediate_cities": [
+          {
+            "name": "Agra",
+            "lat": 27.1767,
+            "lon": 78.0081
+          },
+          {
+            "name": "Nagpur",
+            "lat": 21.1458,
+            "lon": 79.0882
+          },
+          {
+            "name": "Bengaluru",
+            "lat": 12.9716,
+            "lon": 77.5946
+          }
+        ]
+      }
+    },
+    "news_sentiment": {
+      "sentiment_score": 0.6,
+      "risk_factors": [
+        "Temporary traffic congestion due to organized rallies",
+        "Potential localized road closures in major transit hubs"
+      ],
+      "positive_factors": [
+        "Increased investment in security and traffic infrastructure in the origin city (Delhi)",
+        "Long-term stability provided by technology improvements"
+      ],
+      "reasoning": "The immediate negative impact from the localized Bengaluru rally is offset by the long-term, systemic positive impact of increased investment in Delhi's security and technological infrastructure, resulting in an overall slightly positive outlook for logistics operations.",
+      "article_sentiments": [
+        {
+          "title": "Delhi Police budget up 4.6%;stress on tech, security infra",
+          "sentiment": "POSITIVE",
+          "impact": "Increased budgetary focus on technology and security infrastructure in the origin city (Delhi) enhances overall security and potentially improves traffic management efficiency."
+        },
+        {
+          "title": "NCC cadets from Republic Day camp welcomed with rally in Bengaluru",
+          "sentiment": "NEGATIVE",
+          "impact": "A rally in a major intermediate city (Bengaluru) implies potential temporary road closures and significant traffic congestion, disrupting the freight movement schedule."
+        },
+        {
+          "title": "The name\u2019s bond! MCD gets another shot at fund-raising",
+          "sentiment": "NEUTRAL",
+          "impact": "General municipal funding news for Delhi; while funds could eventually benefit infrastructure, there is no direct or immediate impact on inter-state freight transport efficiency or route resilience."
+        }
+      ]
+    },
+    "comparison_report": null
+  },
+  "00cb5761feeb7b91cc38318f7bb0e332": {
+    "routes": {
+      "Route 1": {
+        "route_name": "The Direct Standard",
+        "short_summary": "Highly direct route with the lowest relative distance but suffers significantly from poor carbon efficiency and moderate overall resilience.",
+        "reasoning": "The moderate resilience score (46.53) is heavily suppressed by the extremely low carbon efficiency (0.0), suggesting this pathway relies on older, possibly more congested infrastructure or high transit times through urban areas, which reduces overall flexibility and long-term viability, despite having the lowest measured weather risk.",
+        "intermediate_cities": [
+          {
+            "name": "Agra",
+            "lat": 27.1767,
+            "lon": 78.0081
+          },
+          {
+            "name": "Nagpur",
+            "lat": 21.1458,
+            "lon": 79.0882
+          },
+          {
+            "name": "Hyderabad",
+            "lat": 17.385,
+            "lon": 78.4867
+          }
+        ]
+      },
+      "Route 2": {
+        "route_name": "The Green Resilient Corridor",
+        "short_summary": "The most resilient and carbon-efficient choice, prioritizing long-term reliability and sustainability over minimizing distance scale.",
+        "reasoning": "Achieving the highest resilience (77.94) is attributed directly to its perfect carbon efficiency (1.0) and high road safety (0.831). This strongly indicates the route utilizes modern, potentially tolled expressways and high-grade infrastructure that minimizes operational variability and ensures high throughput, despite having the highest relative distance scale (1.0).",
+        "intermediate_cities": [
+          {
+            "name": "Agra",
+            "lat": 27.1767,
+            "lon": 78.0081
+          },
+          {
+            "name": "Nagpur",
+            "lat": 21.1458,
+            "lon": 79.0882
+          },
+          {
+            "name": "Hyderabad",
+            "lat": 17.385,
+            "lon": 78.4867
+          }
+        ]
+      },
+      "Route 3": {
+        "route_name": "The Adverse Passage",
+        "short_summary": "This route presents the lowest overall resilience, characterized by the highest weather vulnerability and lowest road safety metrics.",
+        "reasoning": "The lowest resilience score (45.00) is a direct consequence of the highest measured weather risk (0.060) and the lowest road safety score (0.814). This pathway is highly susceptible to both environmental disruptions (such as localized flooding or heavy rainfall) and accident closures, making it the least reliable choice for time-sensitive logistics.",
+        "intermediate_cities": [
+          {
+            "name": "Agra",
+            "lat": 27.1767,
+            "lon": 78.0081
+          },
+          {
+            "name": "Nagpur",
+            "lat": 21.1458,
+            "lon": 79.0882
+          },
+          {
+            "name": "Hyderabad",
+            "lat": 17.385,
+            "lon": 78.4867
+          }
+        ]
+      }
+    },
+    "news_sentiment": {
+      "sentiment_score": 0.6,
+      "risk_factors": [
+        "Temporary traffic congestion due to public rallies and events near major hubs",
+        "Localized road closures in southern cities"
+      ],
+      "positive_factors": [
+        "Improved security and law enforcement infrastructure in the route's starting region (Delhi)",
+        "Long-term implementation of technology for traffic management"
+      ],
+      "reasoning": "The increase in the Delhi Police budget focused on technology and security provides a valuable long-term improvement for safety and cargo security at the route origin. However, the temporary negative impact of a major rally causing localized traffic disruption in Bengaluru dampens the overall positivity, resulting in a slightly positive net score.",
+      "article_sentiments": [
+        {
+          "title": "Delhi Police budget up 4.6%;stress on tech, security infra",
+          "sentiment": "POSITIVE",
+          "impact": "Increased budget and security focus in Delhi improve transit safety and reduce risk of cargo crime at the logistics origin."
+        },
+        {
+          "title": "NCC cadets from Republic Day camp welcomed with rally in Bengaluru",
+          "sentiment": "NEGATIVE",
+          "impact": "Rallies in critical southern hubs like Bengaluru cause immediate, significant traffic congestion and potential delays for freight passing through or around the city."
+        },
+        {
+          "title": "The name\u2019s bond! MCD gets another shot at fund-raising",
+          "sentiment": "NEUTRAL",
+          "impact": "Financial news regarding municipal fundraising in Delhi has no direct, immediate impact on the operational resilience or traffic flow of the national highway corridors."
+        }
+      ]
+    },
+    "comparison_report": null
   }
 }
