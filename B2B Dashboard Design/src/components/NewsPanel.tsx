@@ -20,7 +20,7 @@ interface NewsArticle {
 }
 
 const API_KEY = import.meta.env.VITE_NEWS_API_KEY || "yDS4kdTKxmeraPbux5dnkl8oqRYCDRBH57fBCLVq";
-const CACHE_DURATION = 60 * 60 * 1000; // 1 hour
+const CACHE_DURATION = 5 * 60 * 1000; // 5 minutes
 
 export function NewsPanel({ cities, isDarkMode = false }: NewsPanelProps) {
     const [articles, setArticles] = React.useState<NewsArticle[]>([]);
@@ -51,9 +51,9 @@ export function NewsPanel({ cities, isDarkMode = false }: NewsPanelProps) {
             try {
                 console.log("Fetching fresh news for:", citiesKey);
 
-                // Calculate date 5 days ago for "Latest" filter
+                // Calculate date 7 days ago for "Latest" filter
                 const date = new Date();
-                date.setDate(date.getDate() - 5);
+                date.setDate(date.getDate() - 7);
                 const publishedAfter = date.toISOString().split('T')[0]; // YYYY-MM-DD
 
                 // SYNTAX FIX: TheNewsAPI uses symbols: | for OR, + for AND
@@ -72,8 +72,8 @@ export function NewsPanel({ cities, isDarkMode = false }: NewsPanelProps) {
                         api_token: API_KEY,
                         search: initialQuery,
                         language: "en",
-                        limit: 7,
-                        categories: "business,tech,general",
+                        limit: 10,
+                        categories: "business,tech,general,politics",
                         sort: "published_at",
                         published_after: publishedAfter
                     }
@@ -92,8 +92,8 @@ export function NewsPanel({ cities, isDarkMode = false }: NewsPanelProps) {
                                 api_token: API_KEY,
                                 search: indiaQuery,
                                 language: "en",
-                                limit: 7,
-                                categories: "business,tech,general",
+                                limit: 10,
+                                categories: "business,tech,general,politics",
                                 sort: "published_at",
                                 published_after: publishedAfter
                             }
@@ -265,6 +265,33 @@ function getMockNews(): NewsArticle[] {
             image_url: "",
             source: "Transport Times",
             published_at: new Date(Date.now() - 172800000).toISOString()
+        },
+        {
+            uuid: "mock-5",
+            title: "Delhi-Mumbai Expressway Phase 2 Opens",
+            description: "New 8-lane expressway section reduces travel time by 3 hours.",
+            url: "https://www.google.com/search?q=Delhi+Mumbai+Expressway+Phase+2+Opening",
+            image_url: "",
+            source: "Highway News",
+            published_at: new Date(Date.now() - 259200000).toISOString()
+        },
+        {
+            uuid: "mock-6",
+            title: "Truck Drivers Report Improved Road Conditions in Chennai",
+            description: "Recent infrastructure upgrades on major highways receive positive feedback.",
+            url: "https://www.google.com/search?q=Chennai+Highway+Infrastructure+Improvements",
+            image_url: "",
+            source: "Freight India",
+            published_at: new Date(Date.now() - 345600000).toISOString()
+        },
+        {
+            uuid: "mock-7",
+            title: "Kolkata Port Connectivity Enhanced with New Bypass",
+            description: "New road corridor reduces port access time for cargo trucks by 40%.",
+            url: "https://www.google.com/search?q=Kolkata+Port+Bypass+Cargo+Connectivity",
+            image_url: "",
+            source: "Maritime Logistics",
+            published_at: new Date(Date.now() - 432000000).toISOString()
         }
     ];
 }

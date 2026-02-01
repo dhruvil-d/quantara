@@ -2386,5 +2386,454 @@
       ]
     },
     "comparison_report": null
+  },
+  "28107b870e984f8ea2a314f19d337a04": {
+    "routes": {
+      "Route 1": {
+        "route_name": "The Safety Nexus",
+        "short_summary": "This path offers the highest statistical road safety and lowest weather risk but suffers from very low overall operational resilience.",
+        "reasoning": "Resilience is poor (46.64) despite excellent road safety (0.83) and minimal weather risk, suggesting this route, while short and inherently reliable on paper, is highly vulnerable to non-weather disruptions such as high traffic congestion, infrastructural bottlenecks, or frequent regulatory stops, leading to systemic fragility.",
+        "intermediate_cities": [
+          {
+            "name": "Gwalior",
+            "lat": 26.2157,
+            "lon": 78.1775
+          },
+          {
+            "name": "Hyderabad",
+            "lat": 17.385,
+            "lon": 78.4867
+          },
+          {
+            "name": "Krishnagiri",
+            "lat": 12.5369,
+            "lon": 78.2255
+          }
+        ]
+      },
+      "Route 2": {
+        "route_name": "The Green Apex Corridor",
+        "short_summary": "Offering superior resilience and maximum carbon efficiency, this route prioritizes robustness and sustainability over minimized transit distance.",
+        "reasoning": "Achieving the highest resilience score (77.89), this route likely utilizes the most modern, multi-lane expressways, minimizing disruptions from maintenance and congestion. The high carbon efficiency (1.0) reinforces that it uses well-paved, high-speed corridors, allowing for optimal fuel consumption and steady operational flow, which increases reliability.",
+        "intermediate_cities": [
+          {
+            "name": "Nagpur",
+            "lat": 21.1458,
+            "lon": 79.0882
+          },
+          {
+            "name": "Hyderabad",
+            "lat": 17.385,
+            "lon": 78.4867
+          },
+          {
+            "name": "Vijayawada",
+            "lat": 16.5062,
+            "lon": 80.648
+          }
+        ]
+      },
+      "Route 3": {
+        "route_name": "The Secondary Bypass Loop",
+        "short_summary": "This route presents the highest operational risk due to poor road safety standards and maximum vulnerability to adverse weather conditions.",
+        "reasoning": "The route exhibits the lowest overall resilience (44.83) driven by the worst scores in both road safety (0.80) and weather risk (highest value at 0.073). This strongly indicates reliance on secondary highways or poorly maintained state roads that are highly susceptible to closure or damage during monsoon or extreme weather events, leading to unpredictable transit times.",
+        "intermediate_cities": [
+          {
+            "name": "Jhansi",
+            "lat": 25.4484,
+            "lon": 78.5685
+          },
+          {
+            "name": "Kurnool",
+            "lat": 15.8239,
+            "lon": 78.0384
+          },
+          {
+            "name": "Vellore",
+            "lat": 12.9165,
+            "lon": 79.1325
+          }
+        ]
+      }
+    },
+    "news_sentiment": {
+      "sentiment_score": 0.6,
+      "risk_factors": [
+        "Increased localized security threats (theft)",
+        "Potential for supply chain disruption due to organized crime"
+      ],
+      "positive_factors": [
+        "Major private sector investment in logistics and trade infrastructure (DP World)",
+        "Improved business confidence in the transport sector"
+      ],
+      "reasoning": "The sentiment is mildly positive because a key logistics operator (DP World) is expanding, signaling efficiency improvements and investment confidence, outweighing the localized, non-core corridor security reports.",
+      "article_sentiments": [
+        {
+          "title": "Thieves target walkers, cars in south and central Kol",
+          "sentiment": "NEGATIVE",
+          "impact": "Indicates general operational security risks and potential for cargo or vehicle theft in the broader region."
+        },
+        {
+          "title": "BRICS could be a new pillar of global governance\u2014if rapid growth doesn't erode its newfound clout",
+          "sentiment": "NEUTRAL",
+          "impact": "High-level geopolitical and economic commentary with no direct or immediate effect on physical logistics planning or route resilience."
+        },
+        {
+          "title": "Kapil hails DP World tie-up as major fillip for PGTI",
+          "sentiment": "POSITIVE",
+          "impact": "DP World's strategic ties imply investment and efficiency gains in port operations and integrated logistics networks, boosting overall supply chain stability."
+        }
+      ]
+    },
+    "comparison_report": null
+  },
+  "8ee19c1db36ccedacb30fc977eb301af": {
+    "routes": {
+      "Route 2": {
+        "route_name": "The Deccan Eco-Express",
+        "short_summary": "The longest route providing the highest resilience and achieving perfect carbon efficiency due to optimized operations.",
+        "reasoning": "This route achieves the highest overall resilience score (77.96) primarily due to its perfect carbon efficiency (1.0) and high road safety (0.832). Although it represents the greatest total distance, this suggests it leverages high-quality dedicated freight corridors or superior bypasses, ensuring maximum operational consistency and minimal external disruptive factors, justifying the reliability premium.",
+        "intermediate_cities": [
+          {
+            "name": "Agra",
+            "lat": 27.1767,
+            "lon": 78.0081
+          },
+          {
+            "name": "Nagpur",
+            "lat": 21.1458,
+            "lon": 79.0882
+          },
+          {
+            "name": "Hyderabad",
+            "lat": 17.385,
+            "lon": 78.4867
+          }
+        ]
+      },
+      "Route 1": {
+        "route_name": "The Direct Metropolitan Dash",
+        "short_summary": "The shortest operational path with minimal weather risk, but severely penalized for its complete lack of carbon efficiency.",
+        "reasoning": "The moderate resilience score (46.62) is critically constrained by the zero carbon efficiency score (0.0). Although the distance is minimized (0.0 normalized), implying speed is prioritized, the low environmental and efficiency scores suggest the route relies on congested corridors or older infrastructure, leading to frequent stop-starts and high energy consumption, which significantly degrades overall operational stability.",
+        "intermediate_cities": [
+          {
+            "name": "Agra",
+            "lat": 27.1767,
+            "lon": 78.0081
+          },
+          {
+            "name": "Nagpur",
+            "lat": 21.1458,
+            "lon": 79.0882
+          },
+          {
+            "name": "Hyderabad",
+            "lat": 17.385,
+            "lon": 78.4867
+          }
+        ]
+      },
+      "Route 3": {
+        "route_name": "The Monsoon Maneuver Corridor",
+        "short_summary": "A mid-length route characterized by the highest weather vulnerability and lowest safety rating, resulting in the lowest overall resilience.",
+        "reasoning": "This route exhibits the lowest resilience (44.77), stemming from the highest weather risk (0.073) and the lowest road safety rating (0.802). This profile indicates the route likely utilizes lower-grade highways or passes through geographically challenging areas prone to monsoon disruptions and congestion, leading to high potential for unplanned delays and operational risk.",
+        "intermediate_cities": [
+          {
+            "name": "Agra",
+            "lat": 27.1767,
+            "lon": 78.0081
+          },
+          {
+            "name": "Nagpur",
+            "lat": 21.1458,
+            "lon": 79.0882
+          },
+          {
+            "name": "Hyderabad",
+            "lat": 17.385,
+            "lon": 78.4867
+          }
+        ]
+      }
+    },
+    "news_sentiment": {
+      "sentiment_score": 0.65,
+      "risk_factors": [
+        "Increased security risk (theft) along transport corridors",
+        "Potential insurance costs related to cargo security"
+      ],
+      "positive_factors": [
+        "Increased investment and efficiency focus from global logistics operators (DP World)",
+        "Potential for future infrastructure development"
+      ],
+      "reasoning": "While local crime reports introduce immediate security risks to freight operations, the signal of expanded activity by a major global logistics operator (DP World) suggests positive long-term investments and efficiency improvements in the broader transport ecosystem.",
+      "article_sentiments": [
+        {
+          "title": "Thieves target walkers, cars in south and central Kol",
+          "sentiment": "NEGATIVE",
+          "impact": "Indicates active security risks (theft) in urbanized transit areas, increasing risk for cargo and personnel."
+        },
+        {
+          "title": "BRICS could be a new pillar of global governance\u2014if rapid growth doesn't erode its newfound clout",
+          "sentiment": "NEUTRAL",
+          "impact": "High-level geopolitical discussion with no direct or immediate impact on physical road transport resilience or operations."
+        },
+        {
+          "title": "Kapil hails DP World tie-up as major fillip for PGTI",
+          "sentiment": "POSITIVE",
+          "impact": "The association with DP World, a major logistics and port operator, signals potential for increased investment and focus on Indian infrastructure and supply chain efficiency."
+        }
+      ]
+    },
+    "comparison_report": null
+  },
+  "f9e54552a8fa92b32eb7739790262fd0": {
+    "routes": {
+      "Route 1": {
+        "route_name": "The Central Resilience Axis",
+        "short_summary": "Offers the highest overall operational resilience despite moderate distance and weather exposure.",
+        "reasoning": "The high resilience score (74.45) stems from a strong balance of operational factors, particularly high road safety (0.813) paired with moderate distance and carbon footprint. While not the most energy efficient, the structural integrity of this corridor minimizes systemic disruption risks.",
+        "intermediate_cities": [
+          {
+            "name": "Hyderabad, Telangana",
+            "lat": 17.385,
+            "lon": 78.4867
+          },
+          {
+            "name": "Kurnool, Andhra Pradesh",
+            "lat": 15.8271,
+            "lon": 78.0354
+          },
+          {
+            "name": "Anantapur, Andhra Pradesh",
+            "lat": 14.6819,
+            "lon": 77.601
+          }
+        ]
+      },
+      "Route 2": {
+        "route_name": "The Southern Carbon Bypass",
+        "short_summary": "The longest route variant, optimized for fuel economy and minimizing weather-related delays.",
+        "reasoning": "Resilience (68.31) is significantly boosted by near-perfect carbon efficiency (1.0) and the lowest recorded weather risk (0.053). However, the increased total distance (1.0 normalized) translates to longer exposure time and higher potential for traffic/human factors delays, offsetting gains.",
+        "intermediate_cities": [
+          {
+            "name": "Hyderabad, Telangana",
+            "lat": 17.385,
+            "lon": 78.4867
+          },
+          {
+            "name": "Kurnool, Andhra Pradesh",
+            "lat": 15.8271,
+            "lon": 78.0354
+          },
+          {
+            "name": "Anantapur, Andhra Pradesh",
+            "lat": 14.6819,
+            "lon": 77.601
+          }
+        ]
+      },
+      "Route 3": {
+        "route_name": "The Direct Development Path",
+        "short_summary": "Anomaly route with incomplete data, resulting in catastrophically low operational resilience, making it non-viable for freight.",
+        "reasoning": "The extremely low resilience score (29.81) coupled with zero distance and carbon scores suggests this route relies entirely on a hypothetical, undeveloped, or unverified corridor. This systemic uncertainty and high failure probability render it unusable for current logistics planning.",
+        "intermediate_cities": [
+          {
+            "name": "Hyderabad, Telangana",
+            "lat": 17.385,
+            "lon": 78.4867
+          },
+          {
+            "name": "Kurnool, Andhra Pradesh",
+            "lat": 15.8271,
+            "lon": 78.0354
+          },
+          {
+            "name": "Anantapur, Andhra Pradesh",
+            "lat": 14.6819,
+            "lon": 77.601
+          }
+        ]
+      }
+    },
+    "news_sentiment": {
+      "sentiment_score": 0.45,
+      "risk_factors": [
+        "Localized project delays and construction friction near Nagpur city limits.",
+        "Increased risk of accidents involving heavy machinery in loading/transit zones (Kharbi area)."
+      ],
+      "positive_factors": [
+        "None explicitly identified in the current set of local reports."
+      ],
+      "reasoning": "The collective news reflects administrative inefficiency and significant local safety incidents near the origin point, leading to minor potential delays and localized operational friction, resulting in a somewhat negative overall sentiment.",
+      "article_sentiments": [
+        {
+          "title": "Funds in place, work lags: Budget unlikely to lift city\u2019s civic projects",
+          "sentiment": "NEGATIVE",
+          "impact": "Indicates prolonged construction, poor road maintenance, and administrative delays impacting city access/exit."
+        },
+        {
+          "title": "Heartbreaking: Loader reverses vehicle, mows down toddler n Kharbi",
+          "sentiment": "NEGATIVE",
+          "impact": "Highlights serious local safety failure involving logistics equipment, potentially leading to increased scrutiny or temporary operational slowdowns."
+        },
+        {
+          "title": "One week of contaminated water, no urgency from NMC",
+          "sentiment": "NEUTRAL",
+          "impact": "Primarily a public health issue; indirect negative impact through administrative inertia but no direct obstruction to freight movement along the main corridor."
+        }
+      ]
+    },
+    "comparison_report": {
+      "summary": "The mandated reroute moves from the theoretically high-performing but high-security-risk 'Deccan Eco-Express' (Old) to 'The Central Resilience Axis' (Route 1). Although the new route shows lower generalized resilience (74.45 vs 80.96) and poorer carbon efficiency, the critical mitigation of theft/security risks justifies the transition.",
+      "sentiment_change": {
+        "direction": "worsened",
+        "percentage_change": "-30.7%",
+        "reason": "The sentiment dropped from a previous 0.65 (Somewhat Positive) to 0.45 (Somewhat Negative) due to recent localized news highlighting accidents and administrative delays near the Nagpur origin point."
+      },
+      "risk_comparison": {
+        "new_risks": [
+          "Higher relative distance/time exposure (0.65 normalized).",
+          "Increased localized delay risk due to construction and safety incidents at the route start."
+        ],
+        "resolved_risks": [
+          "Increased security risk (theft) along transport corridors.",
+          "Potential high insurance costs related to cargo security."
+        ],
+        "ongoing_risks": [
+          "General weather exposure (moderate risk: 0.060)."
+        ]
+      },
+      "tradeoffs": [
+        {
+          "factor": "Overall Resilience",
+          "old_value": "80.96",
+          "new_value": "74.45",
+          "change": "-6.51 points",
+          "assessment": "A measurable decline in generalized operational resilience, traded for specific risk mitigation."
+        },
+        {
+          "factor": "Carbon Efficiency",
+          "old_value": "1.0 (100%)",
+          "new_value": "0.65",
+          "change": "Significant drop",
+          "assessment": "The new route is significantly less fuel/carbon efficient, indicating higher operating costs and consumption."
+        },
+        {
+          "factor": "Security Risk",
+          "old_value": "High (Primary concern)",
+          "new_value": "Mitigated/Lower",
+          "change": "Major improvement",
+          "assessment": "The key justification for the reroute\u2014eliminating high security and insurance burdens\u2014is achieved."
+        },
+        {
+          "factor": "News Sentiment",
+          "old_value": "0.65",
+          "new_value": "0.45",
+          "change": "Worsened",
+          "assessment": "Current local environment is less favorable, requiring careful planning around Nagpur city operations."
+        }
+      ],
+      "recommendation": "Based on the analysis, the new route (Route 1: The Central Resilience Axis) is strongly recommended. Although the overall resilience score is numerically lower and the route is less efficient, the resolution of critical, high-impact security risks (theft and associated insurance costs) outweighs the decline in general performance metrics and localized negative sentiment. Cargo security and integrity mandate this shift."
+    }
+  },
+  "f9badd82c0b576a63b1389ca6a591530": {
+    "routes": {
+      "Route 2": {
+        "route_name": "The Sustainability Spine",
+        "short_summary": "Offers the highest overall resilience and carbon efficiency, making it the preferred route despite its relative distance profile.",
+        "reasoning": "The exceptionally high resilience score (77.9) stems primarily from perfect carbon efficiency (1.0) and strong road safety performance (0.83), indicating modern infrastructure investment, dedicated corridors, and robust environmental compliance which collectively minimize disruption risk.",
+        "intermediate_cities": [
+          {
+            "name": "Agra",
+            "lat": 27.1767,
+            "lon": 78.0081
+          },
+          {
+            "name": "Nagpur",
+            "lat": 21.1458,
+            "lon": 79.0882
+          },
+          {
+            "name": "Hyderabad",
+            "lat": 17.385,
+            "lon": 78.4867
+          }
+        ]
+      },
+      "Route 1": {
+        "route_name": "The Industrial Mainline",
+        "short_summary": "Characterized by the lowest carbon efficiency, this route likely represents the traditional, high-volume path optimized for existing but aging infrastructure use.",
+        "reasoning": "The low resilience score (46.5) is largely driven by the zero carbon efficiency score (0.0), suggesting reliance on older, high-emission logistics methods that are increasingly vulnerable to future regulatory changes, despite low immediate weather volatility.",
+        "intermediate_cities": [
+          {
+            "name": "Agra",
+            "lat": 27.1767,
+            "lon": 78.0081
+          },
+          {
+            "name": "Nagpur",
+            "lat": 21.1458,
+            "lon": 79.0882
+          },
+          {
+            "name": "Hyderabad",
+            "lat": 17.385,
+            "lon": 78.4867
+          }
+        ]
+      },
+      "Route 3": {
+        "route_name": "The Monsoon Mediator",
+        "short_summary": "This route offers moderate savings in distance but suffers from the highest weather risk and lowest road safety, significantly compromising its overall resilience profile.",
+        "reasoning": "The depressed resilience (44.7) is a direct consequence of the highest recorded weather risk (0.072) coupled with the lowest road safety score (0.80), suggesting segments that utilize less-maintained roads prone to seasonal disruption and higher incident rates.",
+        "intermediate_cities": [
+          {
+            "name": "Agra",
+            "lat": 27.1767,
+            "lon": 78.0081
+          },
+          {
+            "name": "Nagpur",
+            "lat": 21.1458,
+            "lon": 79.0882
+          },
+          {
+            "name": "Hyderabad",
+            "lat": 17.385,
+            "lon": 78.4867
+          }
+        ]
+      }
+    },
+    "news_sentiment": {
+      "sentiment_score": 0.45,
+      "risk_factors": [
+        "Regional security threats (theft/crime)",
+        "Uncertainty regarding specific infrastructure development timelines"
+      ],
+      "positive_factors": [
+        "Potential for significant long-term economic and infrastructure investment (Budget 2026)"
+      ],
+      "reasoning": "The news lacked specific, positive corridor-related infrastructure announcements, while general security concerns were raised, resulting in a slightly negative overall assessment of immediate operational resilience.",
+      "article_sentiments": [
+        {
+          "title": "Budget 2026: Part B to spell out India\u2019s long-term economic roadmap",
+          "sentiment": "NEUTRAL",
+          "impact": "General economic policy focus; potential positive long-term impact on logistics infrastructure, but no immediate or guaranteed benefit."
+        },
+        {
+          "title": "Thieves target walkers, cars in south and central Kol",
+          "sentiment": "NEGATIVE",
+          "impact": "Highlights risks related to cargo and driver security in major urban areas, increasing operational risk and insurance costs across the transport network."
+        },
+        {
+          "title": "BRICS could be a new pillar of global governance\u2014if rapid growth doesn't erode its newfound clout",
+          "sentiment": "NEUTRAL",
+          "impact": "Geopolitical and macro-economic commentary with no direct bearing on the operational efficiency or physical resilience of the Delhi-Chennai transport corridor."
+        }
+      ]
+    },
+    "comparison_report": null
   }
 }

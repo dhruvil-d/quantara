@@ -163,7 +163,11 @@ export default function App() {
   const [rerouteOptions, setRerouteOptions] = useState<Route[]>([]);
 
   const [isIntegrationsOpen, setIsIntegrationsOpen] = useState(false);
-  const [isDarkMode, setIsDarkMode] = useState(false);
+  // Initialize theme from localStorage, default to light mode (false)
+  const [isDarkMode, setIsDarkMode] = useState(() => {
+    const savedTheme = localStorage.getItem('theme');
+    return savedTheme === 'dark';
+  });
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [activeRightTab, setActiveRightTab] = useState<'stats' | 'news'>('news');
   const [priorities, setPriorities] = useState({ time: 25, distance: 25, safety: 25, carbonEmission: 25 });
@@ -318,7 +322,7 @@ export default function App() {
 
     // Add initial log
     setLoadingLogs(prev => [...prev, `Analyzing routes from ${source} to ${destination}...`]);
-    setLoadingProgress(10);
+    setLoadingProgress(0);
 
     try {
       const requestBody = {
@@ -337,7 +341,7 @@ export default function App() {
       console.log("Request body:", JSON.stringify(requestBody, null, 2));
 
       setLoadingLogs(prev => [...prev, "Geocoding locations...", "Fetching routes from Google Maps..."]);
-      setLoadingProgress(30);
+      setLoadingProgress(15);
 
       // Call backend API to analyze routes
       const response = await fetch("http://localhost:5000/analyze-routes", {
@@ -350,7 +354,7 @@ export default function App() {
 
       console.log(`FRONTEND: Response status: ${response.status} ${response.statusText}`);
       setLoadingLogs(prev => [...prev, "Analyzing routes with AI...", "Calculating resilience scores..."]);
-      setLoadingProgress(70);
+      setLoadingProgress(40);
 
       if (!response.ok) {
         const errorText = await response.text();
@@ -527,7 +531,13 @@ export default function App() {
     }
   };
 
-  const toggleTheme = () => setIsDarkMode(!isDarkMode);
+  const toggleTheme = () => {
+    setIsDarkMode(prev => {
+      const newTheme = !prev;
+      localStorage.setItem('theme', newTheme ? 'dark' : 'light');
+      return newTheme;
+    });
+  };
 
   if (view === "selection") {
     return (
@@ -561,6 +571,7 @@ export default function App() {
           progress={loadingProgress}
           logs={loadingLogs}
           isDarkMode={isDarkMode}
+          toggleTheme={toggleTheme}
         />
 
 
@@ -734,54 +745,16 @@ export default function App() {
                     </PanelResizeHandle>
 
                     {/* Right Sidebar */}
-                    <Panel defaultSize={35} minSize={20} maxSize={50} className={`border-l ${isDarkMode ? 'border-gray-700 bg-gray-900' : 'border-gray-200 bg-white'
+                    <Panel defaultSize={35} minSize={20} maxSize={50} className={`border-l ${isDarkMode ? 'border-gray-700 bg-gray-900' : 'bg-white'
                       }`}>
                       <div className="h-full flex flex-col">
-                        <div className={`p-4 border-b shrink-0 ${isDarkMode ? 'border-gray-700' : 'border-gray-200'}`}>
-                          <div className={`flex p-1 rounded-full border ${isDarkMode ? 'bg-gray-800 border-gray-700' : 'bg-gray-100 border-gray-200'}`}>
-                            <button
-                              onClick={() => setActiveRightTab('news')}
-                              className={`flex-1 py-1.5 text-xs font-medium rounded-full transition-all duration-300 ${activeRightTab === 'news'
-                                ? isDarkMode
-                                  ? 'bg-gradient-to-r from-lime-500/80 to-lime-600/80 backdrop-blur-xl border border-white/10 shadow-[0_0_20px_rgba(132,204,22,0.3)] text-white'
-                                  : 'bg-gradient-to-r from-lime-500 to-lime-600 shadow-lg text-white'
-                                : isDarkMode
-                                  ? 'text-gray-400 hover:text-gray-300 hover:bg-white/5'
-                                  : 'text-gray-500 hover:text-gray-700 hover:bg-gray-200/50'
-                                }`}
-                            >
-                              Latest News
-                            </button>
-                            <button
-                              onClick={() => setActiveRightTab('stats')}
-                              className={`flex-1 py-1.5 text-xs font-medium rounded-full transition-all duration-300 ${activeRightTab === 'stats'
-                                ? isDarkMode
-                                  ? 'bg-gradient-to-r from-lime-500/80 to-lime-600/80 backdrop-blur-xl border border-white/10 shadow-[0_0_20px_rgba(132,204,22,0.3)] text-white'
-                                  : 'bg-gradient-to-r from-lime-500 to-lime-600 shadow-lg text-white'
-                                : isDarkMode
-                                  ? 'text-gray-400 hover:text-gray-300 hover:bg-white/5'
-                                  : 'text-gray-500 hover:text-gray-700 hover:bg-gray-200/50'
-                                }`}
-                            >
-                              Stats & Alerts
-                            </button>
-                          </div>
-                        </div>
-
-                        <div className="flex-1 overflow-y-auto p-6 space-y-6">
-                          {activeRightTab === 'news' ? (
-                            <NewsPanel
-                              cities={Array.from(new Set(
-                                routes.flatMap(r => [r.origin, r.destination, ...(r.waypoints || [])])
-                              ))}
-                              isDarkMode={isDarkMode}
-                            />
-                          ) : (
-                            <>
-                              <HighwayReliabilityPanel isDarkMode={isDarkMode} />
-                              <LiveNewsAlerts isDarkMode={isDarkMode} />
-                            </>
-                          )}
+                        <div className="flex-1 overflow-y-auto p-6">
+                          <NewsPanel
+                            cities={Array.from(new Set(
+                              routes.flatMap(r => [r.origin, r.destination, ...(r.waypoints || [])])
+                            ))}
+                            isDarkMode={isDarkMode}
+                          />
                         </div>
                       </div>
                     </Panel>

@@ -89,7 +89,7 @@ export function SelectionPage({ onContinue, isDarkMode, toggleTheme, osmnxEnable
             </div>
 
             {/* Centered Content Container */}
-            <div className="relative z-10 h-full w-full flex flex-col items-center justify-center px-4 mt-12">
+            <div className="relative z-10 h-full w-full flex flex-col items-center justify-center px-4 gap-6">
 
                 {/* Glassmorphic Form Card */}
                 <div className="w-full max-w-md bg-white/20 dark:bg-gray-900/30 backdrop-blur-2xl rounded-3xl p-10 border border-white/30 dark:border-white/10 shadow-2xl transition-all duration-700 ease-in-out">
@@ -180,8 +180,8 @@ export function SelectionPage({ onContinue, isDarkMode, toggleTheme, osmnxEnable
                             onClick={handleContinue}
                             disabled={!source || !destination}
                             className={`w-full py-4 rounded-xl font-semibold text-lg flex items-center justify-center gap-2 transition-all duration-500 ease-out ${source && destination
-                                ? 'bg-gradient-to-r from-emerald-500 to-teal-600 hover:from-emerald-600 hover:to-teal-700 text-white shadow-lg shadow-emerald-500/30 hover:shadow-xl hover:shadow-emerald-500/50 hover:-translate-y-1 hover:scale-[1.02]'
-                                : 'bg-gray-300/50 dark:bg-gray-700/50 text-gray-500 dark:text-gray-400 cursor-not-allowed backdrop-blur-sm'
+                                    ? 'bg-gradient-to-r from-emerald-500 to-teal-600 hover:from-emerald-600 hover:to-teal-700 text-white shadow-lg shadow-emerald-500/30 hover:shadow-xl hover:shadow-emerald-500/50 hover:-translate-y-1 hover:scale-[1.02]'
+                                    : 'bg-gray-300/50 dark:bg-gray-700/50 text-gray-500 dark:text-gray-400 cursor-not-allowed backdrop-blur-sm'
                                 }`}
                         >
                             Find Routes
@@ -192,7 +192,7 @@ export function SelectionPage({ onContinue, isDarkMode, toggleTheme, osmnxEnable
                 </div>
 
                 {/* Tagline Pill Below Card */}
-                <div className="mt-6 w-full max-w-md transition-all duration-500">
+                <div className="w-full max-w-md">
                     <div className="bg-white/10 dark:bg-black/20 backdrop-blur-md rounded-2xl px-6 py-3 border border-white/20 dark:border-white/10 transition-all duration-500">
                         <p className="text-gray-800 dark:text-white/90 text-sm text-center font-medium transition-colors duration-500">
                             AI-Powered B2B Route Intelligence Platform
@@ -201,6 +201,7 @@ export function SelectionPage({ onContinue, isDarkMode, toggleTheme, osmnxEnable
                 </div>
 
             </div>
+
         </div>
     );
 }

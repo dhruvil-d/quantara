@@ -110,7 +110,7 @@ export default function AuthPage() {
       </button>
 
       {/* Centered Content Container */}
-      <div className="relative z-10 h-full w-full flex flex-col items-center justify-center px-4">
+      <div className="relative z-10 h-full w-full flex flex-col items-center justify-center px-4 gap-6">
 
         {/* Glassmorphic Form Card */}
         <div className="w-full max-w-md bg-white/20 dark:bg-gray-900/30 backdrop-blur-2xl rounded-3xl p-10 border border-white/30 dark:border-white/10 shadow-2xl transition-all duration-700 ease-in-out">
@@ -253,7 +253,7 @@ export default function AuthPage() {
         </div>
 
         {/* Tagline Pill Below Card */}
-        <div className="mt-6 w-full max-w-md transition-all duration-500">
+        <div className="w-full max-w-md">
           <div className="bg-white/10 dark:bg-black/20 backdrop-blur-md rounded-2xl px-6 py-3 border border-white/20 dark:border-white/10 transition-all duration-500">
             <p className="text-gray-800 dark:text-white/90 text-sm text-center font-medium transition-colors duration-500">
               AI-Powered B2B Route Intelligence Platform
